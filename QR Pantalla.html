@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Pantalla con QR — Evento</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@400;700&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Inter:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  /* ⚠️ Ahora la página tiene color fijo; el visor usa --screen-bg */
+  --screen-bg:#000000; --text:#ffffff; --accent:#d4af37;
+  --ui-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --title-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --subtitle-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --logo-reserve-min:72px; --logo-reserve-frac:0.12;
+
+  /* Nuevos offsets 2D (mantengo compat c/ antiguos) */
+  --title-x: 0px;         /* horizontal */
+  --title-y: 0px;         /* vertical (reemplaza --title-offset) */
+  --qr-x: 0px;            /* horizontal */
+  --qr-y: 0px;            /* vertical (reemplaza --qr-offset) */
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--ui-font);
+  background:#0b0e14; /* ⬅️ color de página ESTÁTICO */
+  color:var(--text)
+}
+button{cursor:pointer}
+.hidden{display:none}
+
+/* Topbar */
+header{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:900}
+.badge{font-size:12px;padding:4px 8px;border:1px solid rgba(255,255,255,.15);border-radius:999px;color:#cbd5e1;background:rgba(255,255,255,.06)}
+.tabs{display:flex;gap:8px}
+.tab-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:10px;color:#e2e8f0}
+.tab-btn.active{background:rgba(255,255,255,.12)}
+
+/* Layout */
+main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
+.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.grid{display:grid;gap:16px;grid-template-columns:1.5fr .7fr}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.sectionTitle{font-size:13px;color:#cbd5e1;margin-bottom:8px}
+.row{display:flex;gap:12px;align-items:center;margin:10px 0}
+label{font-size:14px;color:#e2e8f0;min-width:160px}
+
+/* Inputs */
+input[type="text"],input[type="number"],input[type="color"],input[type="file"],select,input[type="range"]{width:100%;border-radius:12px;padding:10px 12px;border:1px solid #d1d5db}
+input[type="text"],input[type="number"],input[type="color"],input[type="file"],input[type="range"]{background:#fff;color:#111}
+select{background:#fff;color:#111}
+select option{color:#111;background:#fff}
+button{background:#0f172a;color:#fff;border:1px solid #0f172a;padding:10px 14px;border-radius:12px}
+button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18)}
+.small{font-size:12px;color:#cbd5e1}
+.tag{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;font-size:12px;color:#e2e8f0}
+.modeBadge{font-size:11px;color:#e2e8f0;border:1px dashed rgba(255,255,255,.18);border-radius:8px;padding:2px 8px;background:rgba(255,255,255,.06)}
+
+/* Visor */
+.viewer{
+  width:100%;
+  aspect-ratio:16/9;
+  background:var(--screen-bg); /* ⬅️ solo cambia el color del VISOR */
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;overflow:hidden;position:relative
+}
+.viewer:fullscreen{width:100vw!important;height:100vh!important;aspect-ratio:auto;border:none;border-radius:0}
+
+/* Capas */
+#fxCanvas{position:absolute;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}
+#staticDecor{position:absolute;inset:0;z-index:2;pointer-events:none}
+#mainPhoto{position:relative;z-index:0;width:100%;height:100%;object-fit:cover}
+#mainPhoto.hidden{display:none}
+.safePad{position:absolute;inset:18px;display:grid;place-items:center;pointer-events:none;z-index:3}
+
+/* Overlay y edición */
+.centerOverlay{position:absolute;inset:0;pointer-events:none;z-index:4}
+.centerInner{display:grid;gap:10px;justify-items:center;text-align:center;width:100%;height:100%;grid-template-rows:auto auto 1fr auto;padding-inline:min(2.6vw,28px);align-content:center}
+.centerInner.left{justify-items:start;text-align:left}
+.centerInner.center{justify-items:center;text-align:center}
+.centerInner.right{justify-items:end;text-align:right}
+#titlesGroup{
+  transform:translate(var(--title-x), var(--title-y)); /* ⬅️ 2D */
+  transition:.12s ease
+}
+#screenTitle{font-family:var(--title-font);font-weight:900;line-height:1.05;margin:0;color:var(--text);font-size:clamp(22px,3.6vw,44px);letter-spacing:.3px}
+#screenSubtitle{font-family:var(--subtitle-font);opacity:.9;font-size:clamp(13px,1.7vw,20px);margin:0;color:var(--text)}
+
+/* QR */
+#qrCenter{
+  align-self:center;justify-self:center;width:10px;height:10px;
+  transform:translate(var(--qr-x), var(--qr-y)); /* ⬅️ 2D */
+  transition:.12s ease;display:grid;place-items:center
+}
+#qrCenter img,#qrCenter canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+
+/* Logo */
+#logoSlot{width:min(42%,520px);min-height:var(--logo-reserve-min);display:grid;place-items:center;margin-top:8px;pointer-events:none}
+#logoImg{max-width:100%;max-height:18vh;object-fit:contain;display:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
+
+/* Controles */
+.ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:5}
+.ctrlBtn{background:#ffffff;border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:8px 10px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+
+/* Timeline & Toast */
+.timeline{margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px;background:rgba(255,255,255,.06)}
+.rail{display:flex;gap:8px;overflow:auto;padding-bottom:6px}
+.thumb{width:88px;height:62px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.18);flex:0 0 auto}
+.toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Modal QR */
+.qrModal{position:fixed;inset:0;z-index:70;display:none;background:rgba(0,0,0,.35);backdrop-filter:blur(8px)}
+.qrModal.show{display:block}
+.qrStage{position:absolute;inset:24px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:transparent;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+.qrModalInner{position:absolute;inset:0;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;align-content:center;justify-items:center;padding:24px}
+#qrBoxModal{width:10px;height:10px;display:grid;place-items:center}
+#qrBoxModal img,#qrBoxModal canvas{width:100%;height:100%;image-rendering:pixelated}
+#qrModalTitle,#qrModalSub{color:#fff}
+.qrClose{position:absolute;top:12px;right:12px;z-index:3}
+
+/* Modo arrastrar (resaltado) */
+.drag-mode #titlesGroup,
+.drag-mode #qrCenter{outline:2px dashed rgba(255,255,255,.65);border-radius:12px;pointer-events:auto}
+.drag-hint{position:absolute;left:12px;bottom:12px;font-size:12px;background:rgba(0,0,0,.6);color:#fff;padding:6px 10px;border-radius:8px;z-index:6}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">🎉 Pantalla con QR <span class="badge">sala <span id="roomId">—</span></span></div>
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="pantalla" type="button">Pantalla</button>
+      <button class="tab-btn" data-tab="ajustes" type="button">Ajustes</button>
+    </div>
+  </div>
+</header>
+
+<main id="app" data-mode="app">
+  <section id="pantalla" class="tab-pane">
+    <div class="grid">
+      <div class="card">
+        <div class="sectionTitle">Visor principal</div>
+        <div class="viewer" id="viewer">
+          <canvas id="fxCanvas"></canvas>
+          <div id="staticDecor"></div>
+          <img id="mainPhoto" class="hidden" alt="" aria-hidden="true"/>
+
+          <div class="safePad">
+            <div class="centerOverlay" id="overlay">
+              <div class="centerInner center" id="centerInner">
+                <div id="titlesGroup">
+                  <h1 id="screenTitle">¡Subí tu foto con el QR!</h1>
+                  <h2 id="screenSubtitle">Escaneá y subí 📲</h2>
+                </div>
+
+                <div id="qrCenter"><!-- QR dinámico --></div>
+
+                <div id="logoSlot"><img id="logoImg" alt="Logo del evento"/></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ctrls"><button id="btnFull" class="ctrlBtn" title="Pantalla completa" type="button">⛶</button></div>
+          <div class="drag-hint hidden" id="dragHint">Arrastrá Título o QR. Esc para salir.</div>
+        </div>
+
+        <div class="timeline">
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <div class="small">Línea de tiempo — <span id="countPhotos">0 fotos</span></div>
+            <div class="small"><span id="modeInfo" class="modeBadge">Modo…</span></div>
+          </div>
+          <div id="timelineRail" class="rail"></div>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div class="card">
+        <div class="sectionTitle">Editor de pantalla</div>
+        <div class="row"><span class="tag">Sala: <strong id="roomIdSide">—</strong></span></div>
+
+        <div class="row"><label>Texto</label><input id="titleText" type="text" placeholder="¡Subí tu foto con el QR!"/></div>
+        <div class="row"><label>Tamaño de letra (px)</label><input id="fontSize" type="number" min="16" step="2" value="44"/></div>
+
+        <div class="row"><label>Offset título (↑/↓) %</label><input id="titleOffset" type="range" min="-30" max="30" step="1" value="0"/></div>
+        <div class="row"><label>Offset QR (↑/↓) %</label><input id="qrOffset" type="range" min="-40" max="40" step="1" value="0"/></div>
+
+        <!-- NUEVOS: offsets horizontales -->
+        <div class="row"><label>Offset título (↔) %</label><input id="titleOffsetX" type="range" min="-40" max="40" step="1" value="0"/></div>
+        <div class="row"><label>Offset QR (↔) %</label><input id="qrOffsetX" type="range" min="-40" max="40" step="1" value="0"/></div>
+
+        <div class="row"><label>Estilo tipográfico</label>
+          <select id="fontPreset">
+            <option value='{"title":"Bebas Neue","subtitle":"Inter"}'>Bebas Neue + Inter</option>
+            <option value='{"title":"Playfair Display","subtitle":"Playfair Display"}'>Playfair Display</option>
+            <option value='{"title":"Cinzel","subtitle":"Cinzel"}'>Cinzel</option>
+            <option value='{"title":"Dancing Script","subtitle":"Inter"}'>Dancing Script + Inter</option>
+            <option value='{"title":"Great Vibes","subtitle":"Poppins"}'>Great Vibes + Poppins</option>
+            <option value='{"title":"Inter","subtitle":"Inter"}'>Inter</option>
+            <option value='{"title":"Poppins","subtitle":"Poppins"}' selected>Poppins</option>
+          </select>
+        </div>
+
+        <!-- ⚠️ Color de página queda fijo; este solo cambia el VISOR -->
+        <div class="row"><label>Color fondo (visor)</label><input id="bgColor" type="color" value="#000000"/></div>
+        <div class="row"><label>Color de letras</label><input id="textColor" type="color" value="#ffffff"/></div>
+        <div class="row"><label>Color acento (temas)</label><input id="accentColor" type="color" value="#d4af37"/></div>
+
+        <div class="row"><label>Tema animado</label>
+          <select id="theme">
+            <option value="confetti">Confetti 🎊</option>
+            <option value="fireworks" selected>Fuegos Artificiales 🎆</option>
+            <option value="neon">Rayos Neón 🔦</option>
+            <option value="luces">Bokeh ✨</option>
+          </select>
+        </div>
+
+        <div class="row"><label>Intensidad animados</label><input id="fxIntensity" type="range" min="0" max="100" value="70"/></div>
+
+        <div class="row"><label>Decoración estática</label>
+          <select id="staticTheme">
+            <option value="none" selected>Sin decoración</option>
+            <option value="frame-gold">Marco dorado ⊕</option>
+            <option value="neon-corners">Esquinas neón 💡</option>
+            <option value="disco-ball">Bola disco 🪩</option>
+            <option value="vip-ropes">Corralito VIP 🚧</option>
+            <option value="skyline">Skyline nocturno 🌃</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>Posición vertical</label>
+          <select id="textPosV">
+            <option value="center" selected>Centro</option>
+            <option value="top">Arriba</option>
+            <option value="bottom">Abajo</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>Alineación</label>
+          <select id="textAlign">
+            <option value="center" selected>Centro</option>
+            <option value="left">Izquierda</option>
+            <option value="right">Derecha</option>
+          </select>
+        </div>
+
+        <div class="sectionTitle" style="margin-top:18px">QR</div>
+        <div class="row"><label><input id="qrAuto" type="checkbox" checked/> Tamaño automático</label></div>
+        <div class="row"><label>Tamaño QR (%)</label><input id="qrPercent" type="range" min="20" max="80" value="58"/></div>
+
+        <div class="sectionTitle" style="margin-top:18px">Logo</div>
+        <div class="row"><label>Archivo (PNG/JPG/SVG/WEBP/AVIF/GIF)</label><input id="logoFile" type="file" accept=".png,.jpg,.jpeg,.svg,.webp,.avif,.gif,image/*"/></div>
+        <div class="row"><label>Altura máx. del logo (vh)</label><input id="logoMaxVH" type="number" min="6" max="25" step="1" value="18"/></div>
+
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <button class="secondary" id="genQR" type="button">Generar QR</button>
+          <button class="secondary" id="resetView" type="button">Reset visor</button>
+          <!-- NUEVO: edición fullscreen -->
+          <button id="editFull" type="button">Editar en pantalla completa (arrastrar)</button>
+          <button id="editExit" class="secondary" type="button" disabled>Guardar y salir</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ajustes" class="tab-pane hidden">
+    <div class="card"><div class="small">
+      Entrá con <strong>“Editar en pantalla completa (arrastrar)”</strong> para mover Título y QR con el mouse o dedo. Se guarda automático al soltar.
+    </div></div>
+  </section>
+
+  <!-- SUBIR desde QR (demo local) -->
+  <section id="upload" class="hidden">
+    <div class="card" style="max-width:520px;margin:24px auto">
+      <div class="row" style="justify-content:space-between">
+        <div class="tag">Subir foto — <strong id="uploadRoom"></strong></div>
+        <div class="small" id="roomLabel"></div>
+      </div>
+      <div class="row"><label>Tu nombre (opcional)</label><input id="upName" type="text" placeholder="Ej: Ana / Invitado"/></div>
+      <div class="row"><label>Foto</label><input id="upFile" type="file" accept="image/*,.svg,.webp,.avif,.gif"/></div>
+      <div class="row" style="justify-content:flex-end"><button id="btnUpload" type="button">Subir</button></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<!-- Modal QR -->
+<div id="qrModal" class="qrModal" aria-hidden="true">
+  <div class="qrStage" id="qrStage">
+    <button class="ctrlBtn qrClose" id="qrClose" title="Cerrar" type="button">✕</button>
+    <img id="qrModalLogo" alt="Logo"/>
+    <div class="qrModalInner">
+      <h1 id="qrModalTitle">—</h1>
+      <h2 id="qrModalSub">Escaneá el QR para subir 📲</h2>
+      <div id="qrBoxModal"><!-- QR modal dinámico --></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Helpers ===== */
+const $ = (s)=>document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const isUploadMode = location.hash.replace('#','') === 'subir';
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);} }
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800);}
+
+function enterFullscreen(el){(el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen||el.mozRequestFullScreen)?.call(el);}
+function exitFullscreen(){(document.exitFullscreen||document.webkitExitFullscreen||document.msExitFullscreen||document.mozCancelFullScreen)?.call(document);}
+function isFullscreen(){return document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement||document.mozFullScreenElement;}
+
+/* ===== Estado slideshow ===== */
+let photos=[]; let idx=0; let timer=null; let photoDurationMs=5000; let isPaused=false;
+
+/* ===== QR ===== */
+function makeQRImg(url, size, {bg='#ffffff', fg='#000000'}={}){
+  const toHex=(c)=>c.replace('#','');
+  const img=new Image();
+  img.alt="QR"; img.decoding="async"; img.loading="eager";
+  img.src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=20&color=${toHex(fg)}&bgcolor=${toHex(bg)}&data=${encodeURIComponent(url)}`;
+  img.style.width="100%"; img.style.height="100%"; img.style.imageRendering="pixelated";
+  return img;
+}
+function showQR(show){ const el=$("#qrCenter"); if(el){ el.style.display = show ? 'grid' : 'none'; } }
+
+/* ===== IndexedDB (logos grandes) ===== */
+const IDB={db:null,async open(){if(this.db) return this.db;return new Promise((res,rej)=>{const r=indexedDB.open('qrwall-db',1);r.onupgradeneeded=()=>r.result.createObjectStore('logos');r.onsuccess=()=>{this.db=r.result;res(this.db);};r.onerror=()=>rej(r.error||new Error("IndexedDB bloqueada"));});},
+async putLogo(key,blob){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('logos','readwrite');tx.objectStore('logos').put(blob,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});},
+async getLogo(key){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('logos','readonly');const req=tx.objectStore('logos').get(key);req.onsuccess=()=>res(req.result||null);req.onerror=()=>rej(req.error);});}};
+
+/* ===== Data local ===== */
+function localApi(roomId){
+  const K=(k)=>`qrwall:${roomId}:${k}`;
+  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d));}catch{return d;}};
+  const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+  if(!localStorage.getItem(K('settings'))){
+    write(K('settings'),{
+      titleText:"¡Subí tu foto con el QR!",
+      fontSizePx:44,
+      /* ⚠️ Página queda fija. Este color ahora es SOLO del visor */
+      bgColor:"#000000",textColor:"#ffffff",accentColor:"#d4af37",
+      titleFont:"Poppins",subtitleFont:"Poppins",
+      theme:"fireworks",fxIntensity:70,
+      qrAuto:true,qrPercent:58,
+      textPosV:"center",textAlign:"center",
+      /* Compat + nuevos offsets 2D */
+      titleOffsetPct:0,qrOffsetPct:0, /* legacy (vertical) */
+      titleXOffsetPct:0, qrXOffsetPct:0,
+      staticTheme:"none",
+      logoUrl:"",logoRef:null,logoMaxVH:18,photoDurationMs:5000
+    });
+  }
+  const settingsSubs=new Set(), photosSubs=new Set();
+  return{
+    mode:'Local',
+    async getSettings(){return read(K('settings'),{});},
+    async updateSettings(p){const cur=read(K('settings'),{});const next={...cur,...p};write(K('settings'),next);settingsSubs.forEach(cb=>cb(next));},
+    onSettingsSnapshot(cb){settingsSubs.add(cb);cb(read(K('settings'),{}));return()=>settingsSubs.delete(cb);},
+    listenPhotos(cb){photosSubs.add(cb);cb(read(K('photos'),[]));return()=>photosSubs.delete(cb);},
+    async addPhoto({url,name}){const list=read(K('photos'),[]);list.push({id:Date.now().toString(),url,name,createdAt:Date.now()});write(K('photos'),list);photosSubs.forEach(fn=>fn(list));},
+
+    async uploadLogo(file){
+      if(!file) throw new Error("Elegí un archivo");
+      const SMALL_LIMIT = 3.5*1024*1024;
+      const arrBuf = await file.arrayBuffer();
+      if(arrBuf.byteLength <= SMALL_LIMIT){
+        const dataURL = await new Promise((res,rej)=>{const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(new Blob([arrBuf],{type:file.type||'application/octet-stream'}));});
+        const s=read(K('settings'),{}); const next={...s,logoUrl:dataURL,logoRef:null};
+        write(K('settings'),next); settingsSubs.forEach(cb=>cb(next));
+        return {mode:'dataurl', url: dataURL};
+      }
+      const key = `logo-${roomId}-${Date.now()}`;
+      await IDB.putLogo(key, new Blob([arrBuf],{type:file.type||'application/octet-stream'}));
+      const s=read(K('settings'),{}); const next={...s,logoUrl:"",logoRef:{key}};
+      write(K('settings'),next); settingsSubs.forEach(cb=>cb(next));
+      return {mode:'idb', key};
+    }
+  };
+}
+
+/* ===== FX (resumido) ===== */
+class FXEngine{
+  constructor(canvas, host){
+    this.cv = canvas; this.host = host; this.ctx = canvas.getContext('2d');
+    this.w=0; this.h=0; this.dpr=1; this.theme='fireworks';
+    this.accent='#d4af37'; this.bg='#000'; this.last=0; this.items=[]; this.rockets=[];
+    this.hue=0; this.running=true; this.intensity=1;
+    this.resize();
+    const resizer=()=>this.resize();
+    new ResizeObserver(resizer).observe(this.host);
+    window.addEventListener('resize',resizer);document.addEventListener('fullscreenchange',resizer);
+    if(window.visualViewport) window.visualViewport.addEventListener('resize',resizer);
+    document.addEventListener('visibilitychange',()=>{this.running=document.visibilityState==='visible';if(this.running) this.last=performance.now();});
+    requestAnimationFrame(t=>this.loop(t));
+  }
+  setIntensity(pct){this.intensity=Math.max(0,Math.min(2,pct/50));}
+  ensureSize(){const r=this.host.getBoundingClientRect();if(Math.abs(r.width-this.w)>1||Math.abs(r.height-this.h)>1) this.resize();}
+  resize(){
+    const r=this.host.getBoundingClientRect();this.dpr=Math.min(2,window.devicePixelRatio||1);
+    this.cv.style.width=r.width+'px';this.cv.style.height=r.height+'px';
+    this.cv.width=Math.max(1,Math.floor(r.width*this.dpr));this.cv.height=Math.max(1,Math.floor(r.height*this.dpr));
+    this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);this.w=r.width;this.h=r.height;
+  }
+  setTheme(t){this.theme=t;this.items=[];this.rockets=[];}
+  setColors({accent,bg}){this.accent=accent||this.accent;this.bg=bg||this.bg;}
+  loop(t){this.ensureSize();if(!this.last) this.last=t;const dt=Math.min(0.05,(t-this.last)/1000);this.last=t;
+    if(this.running){switch(this.theme){case'confetti':this.stepConfetti(dt);break;case'fireworks':this.stepFireworks(dt);break;case'neon':this.stepNeon(dt);break;case'luces':this.stepBokeh(dt);break;}}
+    requestAnimationFrame(tt=>this.loop(tt));}
+  /* ... (motores visuales exactamente igual que tu versión anterior) ... */
+  /* Para brevedad, dejo la implementación completa que ya tenías aquí: confetti/fireworks/neon/luces */
+  stepConfetti(dt){const{ctx,w,h}=this;const cap=240*this.intensity+40;if(this.items.length<cap||Math.random()<0.02*this.intensity)this.spawnConfetti();
+    ctx.clearRect(0,0,w,h);const wind=Math.sin(performance.now()/1500)*45;const next=[];
+    for(const p of this.items){p.vy+=40*dt;p.vx+=wind*dt*0.6;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=0.95;ctx.fillStyle=p.color;ctx.fillRect(-p.s*0.4,-p.s*0.12,p.s*0.8,p.s*0.24);ctx.restore();
+      if(p.y<h+40) next.push(p); else {p.y=-20;p.x=Math.random()*w;next.push(p);} } this.items=next;}
+  spawnConfetti(){const{w}=this;const n=28*this.intensity+28;for(let i=0;i<n;i++){const hue=(Math.random()<0.5)?this.accent:`hsl(${(this.hue+i*12)%360} 90% 60%)`;this.items.push({x:Math.random()*w,y:-20-Math.random()*80,vx:(Math.random()-0.5)*80,vy:10+Math.random()*70,rot:Math.random()*Math.PI,vr:(Math.random()-0.5)*3,s:12+Math.random()*26,color:hue});}this.hue=(this.hue+40)%360;}
+  stepFireworks(dt){const{ctx,w,h}=this;const want=Math.max(1,Math.floor(6*this.intensity));if(this.rockets.length<want&&Math.random()<0.25*this.intensity)this.launchRocket();
+    ctx.clearRect(0,0,w,h);const newRockets=[];
+    for(const r of this.rockets){r.vy+=150*dt;r.x+=r.vx*dt;r.y+=r.vy*dt;r.trail.unshift({x:r.x,y:r.y,life:0.5});if(r.trail.length>16)r.trail.pop();
+      for(const t of r.trail){t.life-=dt;this.circle(t.x,t.y,2,`hsl(${r.h},90%,65%)`,Math.max(0,t.life*2));}
+      if(r.vy>0||r.y<r.targetY){this.explode(r.x,r.y,r.h);}else newRockets.push(r);}
+    this.rockets=newRockets;
+    const np=[];for(const p of this.items){if(p.type!=='fw'){np.push(p);continue;}p.vy+=100*dt;p.vx*=(1-0.45*dt);p.vy*=(1-0.45*dt);p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+      this.glow(p.x,p.y,p.size*2.3,`hsla(${p.h},100%,70%,${Math.max(0,p.life/p.maxlife)})`); if(p.life>0) np.push(p);} this.items=np;}
+  launchRocket(){const{w,h}=this;const x=Math.random()*w;const y=h+20;this.rockets.push({x,y,vx:(Math.random()-0.5)*40,vy:-260-Math.random()*140,targetY:60+Math.random()*h*0.4,h:Math.floor(Math.random()*360),trail:[]});}
+  explode(x,y,h){const n=50+Math.random()*60;for(let i=0;i<n;i++){const a=i/n*Math.PI*2;const s=60+Math.random()*140;this.items.push({type:'fw',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.9+Math.random()*0.6,maxlife:1.3,size:2+Math.random()*3,h:(h+i*6)%360});}}
+  circle(x,y,r,c,a=1){const{ctx}=this;ctx.save();ctx.globalAlpha=a;ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore();}
+  glow(x,y,r,c){const{ctx}=this;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+  stepNeon(dt){const{ctx,w,h}=this;ctx.clearRect(0,0,w,h);const t=performance.now()/1000;const beams=Math.max(2,Math.floor(6*this.intensity));
+    for(let i=0;i<beams;i++){const angle=t*0.6+i*1.05;const x=w/2+Math.cos(angle)*w*0.18;const y=h/2+Math.sin(angle)*h*0.18;ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+      const grad=ctx.createLinearGradient(-w,0,w,0);grad.addColorStop(0,'rgba(255,255,255,0)');grad.addColorStop(0.45,`hsla(${(this.hue+i*40)%360},100%,60%,0.25)`);grad.addColorStop(0.55,`hsla(${(this.hue+i*40+20)%360},100%,75%,0.32)`);grad.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=grad;ctx.fillRect(-w,-7-i*0.5,w*2,14+i*1);ctx.restore();}
+    for(let i=0;i<30*this.intensity;i++){const px=(i*97+(t*60)%w)%w,py=(i*71+(Math.sin(t*0.8+i)*0.5+0.5)*h)%h;const g=ctx.createRadialGradient(px,py,0,px,py,8);
+      g.addColorStop(0,`hsla(${(this.hue+i*13)%360},100%,70%,0.5)`);g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.fill();}
+    this.hue=(this.hue+30*dt)%360;}
+  stepBokeh(dt){const{ctx,w,h}=this;const want=Math.floor(36*this.intensity)+8;while(this.items.filter(b=>b.type==='b').length<want){
+      this.items.push({type:'b',x:Math.random()*w,y:Math.random()*h,r:14+Math.random()*30,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10,a:0.12+Math.random()*0.25,h:(this.hue+Math.random()*60)%360});}
+    ctx.clearRect(0,0,w,h);for(const b of this.items){if(b.type!=='b') continue;b.x+=b.vx*dt;b.y+=b.vy*dt;
+      if(b.x<-40)b.x=w+40;if(b.x>w+40)b.x=-40;if(b.y<-40)b.y=h+40;if(b.y>h+40)b.y=-40;
+      const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);g.addColorStop(0,`hsla(${b.h},100%,85%,${b.a})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();}}
+}
+
+/* ===== Decoraciones estáticas (igual que antes) ===== */
+function applyStaticDecor(kind, accent='#d4af37'){
+  const host=$("#staticDecor"); host.innerHTML=""; if(kind==="none") return;
+  const add=(el)=>{el.style.pointerEvents="none";host.appendChild(el);};
+  if(kind==="frame-gold"){
+    const f=document.createElement('div');
+    f.style.position='absolute';f.style.inset='12px';
+    f.style.border=`14px solid ${accent}`;
+    f.style.borderRadius='22px';
+    f.style.boxShadow='0 0 0 6px rgba(0,0,0,.35) inset, 0 8px 30px rgba(0,0,0,.35)';
+    add(f);
+  }
+  if(kind==="neon-corners"){const mk=(x,y,rot)=>{const d=document.createElement('div');d.style.position='absolute';d.style.width='220px';d.style.height='220px';d.style.left=x;d.style.top=y;d.style.filter='drop-shadow(0 0 12px rgba(0,255,255,.9))';d.innerHTML=`<svg width="220" height="220"><path d="M10,120 Q10,10 120,10" stroke="cyan" stroke-width="10" fill="none" stroke-linecap="round"/></svg>`;d.style.transform=`rotate(${rot}deg)`;return d;};add(mk('0','0',0));const t2=mk('auto','0',90);t2.style.right='0';t2.style.left='';add(t2);const t3=mk('0','auto',-90);t3.style.bottom='0';add(t3);const t4=mk('auto','auto',180);t4.style.right='0';t4.style.bottom='0';add(t4);}
+  if(kind==="disco-ball"){const b=document.createElement('div');b.style.position='absolute';b.style.left='6%';b.style.top='-6px';b.style.width='120px';b.style.height='160px';b.innerHTML=`<svg width="120" height="160" viewBox="0 0 120 160"><line x1="60" y1="0" x2="60" y2="30" stroke="rgba(255,255,255,.6)" stroke-width="3"/><circle cx="60" cy="90" r="45" fill="url(#g)"/><defs><radialGradient id="g" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#eee"/><stop offset="100%" stop-color="#999"/></radialGradient></defs>${
+    Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((_,c)=>{const x=30+c*8,y=60+r*8;return `<rect x="${x}" y="${y}" width="7" height="7" fill="rgba(255,255,255,${0.6-Math.random()*0.4})" stroke="rgba(0,0,0,.2)" stroke-width="0.5"/>`;}).join('')).join('')
+  }</svg>`;b.style.filter='drop-shadow(0 6px 16px rgba(255,255,255,.35))';add(b);}
+  if(kind==="vip-ropes"){const v=document.createElement('div');v.style.position='absolute';v.style.left='6%';v.style.right='6%';v.style.bottom='8%';v.style.height='90px';v.innerHTML=`<svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none"><g fill="${accent}"><circle cx="60" cy="70" r="10"/><circle cx="140" cy="70" r="10"/><circle cx="860" cy="70" r="10"/><circle cx="940" cy="70" r="10"/></g><g stroke="${accent}" stroke-width="10" fill="none" stroke-linecap="round"><path d="M70,70 Q160,30 500,50 Q840,70 930,30"/></g></svg>`;add(v);}
+  if(kind==="skyline"){const s=document.createElement('div');s.style.position='absolute';s.style.left='0';s.style.right='0';s.style.bottom='0';s.style.height='18%';s.innerHTML=`<svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none"><rect x="0" y="120" width="1000" height="80" fill="#0a0a0a"/><path d="M0,120 L60,120 60,70 90,70 90,120 150,120 150,80 210,80 210,120 260,120 260,60 320,60 320,120 370,120 370,75 430,75 430,120 500,120 500,50 560,50 560,120 620,120 620,65 690,65 690,120 740,120 740,85 810,85 810,120 880,120 880,70 940,70 940,120 1000,120 1000,200 0,200 Z" fill="#111"/>${
+    Array.from({length:80}).map(()=>`<rect x="${Math.random()*980+10}" y="${90+Math.random()*60}" width="3" height="${6+Math.random()*12}" fill="rgba(255,255,180,.7)"/>`).join('')
+  }</svg>`;add(s);}
+}
+
+/* ===== App ===== */
+(async function(){
+  let roomId = params.get("r") || "";
+  if(!roomId){roomId=(Math.random().toString(36).slice(2,8)).toUpperCase();const url=new URL(location.href);url.searchParams.set("r",roomId);history.replaceState({}, "", url.toString());}
+  $("#roomId").textContent=roomId; $("#roomIdSide").textContent=roomId; $("#uploadRoom").textContent=roomId;
+
+  function switchTab(tab){
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelector(`[data-tab="${tab}"]`)?.classList.add("active");
+    document.querySelectorAll(".tab-pane").forEach(p=>p.classList.add("hidden"));
+    document.getElementById(tab)?.classList.remove("hidden");
+    if(tab==="pantalla"){ layoutOverlay(true); }
+  }
+  document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>switchTab(btn.getAttribute("data-tab"))));
+  if(isUploadMode){$("#pantalla").classList.add("hidden");$("#ajustes").classList.add("hidden");$("#upload").classList.remove("hidden");$("#tabs").classList.add("hidden");$(".brand").textContent="Subí tu foto";}
+
+  const API = localApi(roomId); $("#modeInfo").textContent="Modo "+API.mode;
+  const fx = new FXEngine($("#fxCanvas"), $("#viewer"));
+
+  function setRoot(d){
+    document.documentElement.style.setProperty('--title-font', `"${d.titleFont||'Poppins'}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);
+    document.documentElement.style.setProperty('--subtitle-font', `"${d.subtitleFont||'Poppins'}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);
+    document.documentElement.style.setProperty('--text', d.textColor||'#fff');
+    document.documentElement.style.setProperty('--accent', d.accentColor||'#d4af37');
+
+    /* ⬇️ SOLO el visor cambia de color */
+    document.documentElement.style.setProperty('--screen-bg', d.bgColor||'#000');
+
+    /* Mapear offsets (legacy + nuevos) a variables CSS 2D */
+    const ty = ((d.titleOffsetPct??0)/100)*120;        /* px relativos aprox */
+    const qy = ((d.qrOffsetPct??0)/100)*160;
+    const tx = ((d.titleXOffsetPct??0)/100)*120;
+    const qx = ((d.qXOffsetFix||d.qrXOffsetPct||0)/100)*160;
+
+    document.documentElement.style.setProperty('--title-y', ty+'px');
+    document.documentElement.style.setProperty('--qr-y', qy+'px');
+    document.documentElement.style.setProperty('--title-x', tx+'px');
+    document.documentElement.style.setProperty('--qr-x', qx+'px');
+
+    fx.setColors({accent:d.accentColor,bg:d.bgColor});
+    applyStaticDecor(d.staticTheme||"none", d.accentColor||'#d4af37');
+  }
+
+  async function applyLogo(d){
+    const vLogo=$("#logoImg"), mLogo=$("#qrModalLogo"); let url="";
+    if(d.logoUrl){ url=d.logoUrl; }
+    else if(d.logoRef && d.logoRef.key){
+      const blob = await IDB.getLogo(d.logoRef.key);
+      if(blob){ url = URL.createObjectURL(blob); }
+    }
+    if(url){ vLogo.src=url; vLogo.style.display="block"; vLogo.style.maxHeight=(d.logoMaxVH||18)+"vh";
+             mLogo.src=url; mLogo.style.display="block"; mLogo.style.maxHeight=(d.logoMaxVH||18)+"vh"; }
+    else { vLogo.removeAttribute("src"); vLogo.style.display="none";
+           mLogo.removeAttribute("src"); mLogo.style.display="none"; }
+  }
+
+  const applySettings=(d)=>{
+    $("#titleText").value=d.titleText??""; $("#fontSize").value=d.fontSizePx??44;
+    $("#titleOffset").value=d.titleOffsetPct??0; $("#qrOffset").value=d.qrOffsetPct??0;
+    $("#titleOffsetX").value=d.titleXOffsetPct??0; $("#qrOffsetX").value=d.qrXOffsetPct??0;
+    $("#fxIntensity").value=d.fxIntensity??70;
+    $("#bgColor").value=d.bgColor||"#000000"; $("#textColor").value=d.textColor||"#ffffff"; $("#accentColor").value=d.accentColor||"#d4af37";
+    $("#theme").value=d.theme||"fireworks"; $("#staticTheme").value=d.staticTheme||"none";
+    $("#qrAuto").checked=d.qrAuto??true; $("#qrPercent").value=d.qrPercent??58;
+    $("#textPosV").value=d.textPosV||"center"; $("#textAlign").value=d.textAlign||"center";
+    $("#logoMaxVH").value=d.logoMaxVH??18;
+
+    setRoot(d);
+    $("#viewer").style.background="var(--screen-bg)"; /* refuerza color solo en visor */
+    $("#qrStage").style.background="transparent"; fx.setTheme(d.theme||'fireworks');
+
+    const ci=$("#centerInner"); ci.style.alignContent=(d.textPosV==="top"?"start":d.textPosV==="bottom"?"end":"center");
+    ci.classList.remove("left","center","right"); ci.classList.add(d.textAlign||"center");
+
+    $("#screenTitle").textContent=d.titleText??""; $("#screenTitle").style.fontSize=(d.fontSizePx??44)+"px";
+    $("#screenTitle").style.color=d.textColor||"#fff"; $("#screenSubtitle").style.color=d.textColor||"#fff";
+    $("#qrModalTitle").textContent=d.titleText??"";
+
+    applyLogo(d);
+    layoutOverlay(true);
+    showQR(true);
+  };
+  API.onSettingsSnapshot(applySettings);
+
+  /* ===== Controles ===== */
+  $("#titleText").addEventListener("input",debounce(e=>{API.updateSettings({titleText:e.target.value});$("#screenTitle").textContent=e.target.value;layoutOverlay(true);},120));
+  $("#fontSize").addEventListener("input",e=>{const v=Number(e.target.value)||44;$("#screenTitle").style.fontSize=v+"px";API.updateSettings({fontSizePx:v});});
+  $("#titleOffset").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--title-y',v/100*120+'px');API.updateSettings({titleOffsetPct:v});});
+  $("#qrOffset").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--qr-y',v/100*160+'px');API.updateSettings({qrOffsetPct:v});});
+
+  /* Nuevos sliders X */
+  $("#titleOffsetX").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--title-x',v/100*120+'px');API.updateSettings({titleXOffsetPct:v});});
+  $("#qrOffsetX").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--qr-x',v/100*160+'px');API.updateSettings({qrXOffsetPct:v});});
+
+  $("#fxIntensity").addEventListener("input",e=>{const v=Number(e.target.value)||0;fx.setIntensity(v);API.updateSettings({fxIntensity:v});});
+  $("#bgColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--screen-bg',v);API.updateSettings({bgColor:v});});
+  $("#textColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--text',v);$("#screenTitle").style.color=v;$("#screenSubtitle").style.color=v;API.updateSettings({textColor:v});});
+  $("#accentColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--accent',v);applyStaticDecor($("#staticTheme").value,v);API.updateSettings({accentColor:v});});
+  $("#fontPreset").addEventListener("change",e=>{const obj=JSON.parse(e.target.value);document.documentElement.style.setProperty('--title-font',`"${obj.title}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);document.documentElement.style.setProperty('--subtitle-font',`"${obj.subtitle}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);API.updateSettings({titleFont:obj.title,subtitleFont:obj.subtitle});});
+  $("#theme").addEventListener("change",e=>{fx.setTheme(e.target.value);API.updateSettings({theme:e.target.value});});
+  $("#staticTheme").addEventListener("change",e=>{applyStaticDecor(e.target.value,$("#accentColor").value);API.updateSettings({staticTheme:e.target.value});});
+  $("#qrAuto").addEventListener("change",e=>{API.updateSettings({qrAuto:e.target.checked});layoutOverlay(true);});
+  $("#qrPercent").addEventListener("input",e=>{API.updateSettings({qrPercent:Number(e.target.value)});layoutOverlay(true);});
+  $("#textPosV").addEventListener("change",e=>{const ci=$("#centerInner");ci.style.alignContent=(e.target.value==="top"?"start":e.target.value==="bottom"?"end":"center");API.updateSettings({textPosV:e.target.value});});
+  $("#textAlign").addEventListener("change",e=>{const ci=$("#centerInner");ci.classList.remove("left","center","right");ci.classList.add(e.target.value);API.updateSettings({textAlign:e.target.value});});
+  $("#logoMaxVH").addEventListener("input",e=>{const v=Math.min(25,Math.max(6,Number(e.target.value)||18));$("#logoImg").style.maxHeight=v+"vh";$("#qrModalLogo").style.maxHeight=v+"vh";API.updateSettings({logoMaxVH:v});layoutOverlay(true);});
+  $("#logoFile").addEventListener("change",async(ev)=>{const f=ev.target.files?.[0]; if(!f) return; try{await API.uploadLogo(f); toast("Logo actualizado ✅");}catch(e){toast(e.message||"No se pudo subir el logo");}});
+
+  /* ===== Modal QR ===== */
+  const qrModal=$("#qrModal"), qrBoxModal=$("#qrBoxModal"), qrClose=$("#qrClose");
+  $("#genQR").addEventListener("click",()=>openQRModal()); qrClose.addEventListener("click",closeQRModal);
+  qrModal.addEventListener("click",(e)=>{if(e.target===qrModal)closeQRModal();});
+  function openQRModal(){qrModal.classList.add("show");syncModalFromSettings();layoutQRModal();enterFullscreen($("#qrStage"));$("#dragHint")?.classList.add("hidden");}
+  function closeQRModal(){qrModal.classList.remove("show");if(isFullscreen()) exitFullscreen();}
+  function syncModalFromSettings(){API.getSettings().then(async d=>{setRoot(d);await applyLogo(d);const url=new URL(location.href);url.hash="#subir";qrBoxModal.innerHTML="";const stage=$("#qrStage").getBoundingClientRect();const size=Math.floor(Math.min(stage.width,stage.height)*0.62);qrBoxModal.appendChild(makeQRImg(url.toString(),size,{bg:'#ffffff',fg:'#000000'}));layoutQRModal();});}
+
+  /* ===== Layout QR ===== */
+  function sizeQR(rect, titleH, subH, s, logoPx){
+    const pad=22; const minS=Math.min(rect.width,rect.height);
+    if(s.qrAuto){const maxH=Math.max(120,rect.height-titleH-subH-logoPx-pad*2);const maxW=Math.max(120,rect.width-pad*2);return Math.floor(Math.min(maxH,maxW));}
+    const pct=Math.min(80,Math.max(20,Number(s.qrPercent||58))); return Math.floor(minS*pct/100);
+  }
+  function computeLogoReserve(rect){const frac=Number(getComputedStyle(document.documentElement).getPropertyValue('--logo-reserve-frac'))||0.12;const minPx=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--logo-reserve-min'))||72;return Math.max(minPx,rect.height*frac);}
+  function layoutOverlay(redrawQR=false){
+    const safe=document.querySelector(".safePad").getBoundingClientRect(); const title=$("#screenTitle"); const subtitle=$("#screenSubtitle"); const qrBox=$("#qrCenter");
+    API.getSettings().then(d=>{
+      const reserve=computeLogoReserve(safe);
+      const s=sizeQR(safe,title.offsetHeight||0,subtitle.offsetHeight||0,d,reserve);
+      qrBox.style.width=s+"px";qrBox.style.height=s+"px";
+      if(redrawQR){
+        const url=new URL(location.href); url.hash="#subir";
+        qrBox.innerHTML="";
+        qrBox.appendChild(makeQRImg(url.toString(), s, {bg:'#ffffff', fg:'#000000'}));
+      }
+      $("#logoImg").style.display=(d.logoUrl||d.logoRef)?"block":"none";
+    });
+  }
+  function layoutQRModal(){
+    const stage=$("#qrStage").getBoundingClientRect();const titleH=$("#qrModalTitle").offsetHeight||0;const subH=$("#qrModalSub").offsetHeight||0;
+    API.getSettings().then(d=>{
+      const logoPx=(d.logoMaxVH?(stage.height*d.logoMaxVH/100):stage.height*0.18);
+      const s=sizeQR(stage,titleH,subH,d,logoPx+20);
+      const box=$("#qrBoxModal");
+      const url=new URL(location.href);url.hash="#subir";
+      box.innerHTML="";
+      box.appendChild(makeQRImg(url.toString(), s,{bg:'#ffffff',fg:'#000000'}));
+    });
+  }
+  window.addEventListener("resize",()=>{layoutOverlay(true);if($("#qrModal").classList.contains("show")) layoutQRModal();});
+  document.addEventListener("fullscreenchange",()=>{layoutOverlay(true);if($("#qrModal").classList.contains("show")) layoutQRModal();});
+  $("#btnFull").addEventListener("click",()=>{if(isFullscreen()) exitFullscreen(); else enterFullscreen($("#viewer"));});
+
+  /* ===== Slideshow ===== */
+  API.getSettings().then(d=>{photoDurationMs=d.photoDurationMs||5000;});
+  API.listenPhotos(list=>{
+    photos=list;
+    paintTimeline();
+    showQR(photos.length===0);
+    if(!isPaused) resetSlideshow();
+  });
+  function paintTimeline(){const rail=$("#timelineRail");rail.innerHTML="";photos.forEach((p,i)=>{const img=document.createElement("img");img.src=p.url;img.alt=p.name||"Foto";img.className="thumb";img.addEventListener("click",()=>{idx=i;showSlide();if(!isPaused) resetSlideshow(true);});rail.appendChild(img);});$("#countPhotos").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;}
+  function showSlide(){
+    const img=$("#mainPhoto");
+    if(!photos.length){
+      img.classList.add("hidden");
+      showQR(true);
+      layoutOverlay(true);
+      return;
+    }
+    img.classList.remove("hidden");
+    img.src=photos[idx%photos.length].url;
+    showQR(false);
+  }
+  function clearTimer(){if(timer){clearInterval(timer);timer=null;}}
+  function resetSlideshow(keepIndex=false){
+    clearTimer();
+    if(!photos.length){
+      showQR(true);
+      layoutOverlay(true);
+      return;
+    }
+    if(!keepIndex) idx=0;
+    showSlide();
+    if(isPaused) return;
+    timer=setInterval(()=>{
+      if(!photos.length){
+        clearTimer();
+        showQR(true);
+        layoutOverlay(true);
+        return;
+      }
+      idx++;
+      if(idx>=photos.length){
+        clearTimer();
+        showQR(true);
+        layoutOverlay(true);
+      } else {
+        showSlide();
+      }
+    }, photoDurationMs);
+  }
+
+  /* ===== Atajos teclado ===== */
+  const HOT = new Set(["Space","Escape","KeyF","KeyQ","Digit1","Digit2","ArrowRight","ArrowLeft","ArrowUp","ArrowDown"]);
+  function nextSlide(){ if(!photos.length) return; idx=(idx+1)%photos.length; showSlide(); }
+  function prevSlide(){ if(!photos.length) return; idx=(idx-1+photos.length)%photos.length; showSlide(); }
+  document.addEventListener("keydown",(e)=>{
+    if(!HOT.has(e.code)) return;
+    e.preventDefault(); e.stopPropagation();
+
+    if(e.code==="Space"){ isPaused=!isPaused; if(isPaused){ clearTimer(); toast("Pausa ⏸"); } else { resetSlideshow(true); toast("Play ▶️"); } return; }
+    if(e.code==="Escape"){
+      if($("#qrModal").classList.contains("show")){ $("#qrClose").click(); return; }
+      if(isFullscreen() && dragMode){ stopDragMode(true); return; } /* salir edición si estaba activa */
+      if(isFullscreen()){ exitFullscreen(); return; }
+      return;
+    }
+    if(e.code==="KeyF"){ if(isFullscreen()) exitFullscreen(); else enterFullscreen($("#viewer")); return; }
+    if(e.code==="KeyQ"){ $("#genQR").click(); return; }
+    if(e.code==="Digit1"){ document.querySelector('[data-tab="pantalla"]')?.click(); return; }
+    if(e.code==="Digit2"){ document.querySelector('[data-tab="ajustes"]')?.click(); return; }
+
+    if(e.code==="ArrowRight"){ nextSlide(); if(!isPaused){ isPaused=true; toast("Pausa ⏸ (→)"); } return; }
+    if(e.code==="ArrowLeft"){ prevSlide(); if(!isPaused){ isPaused=true; toast("Pausa ⏸ (←)"); } return; }
+
+    if(e.shiftKey && (e.code==="ArrowUp"||e.code==="ArrowDown")){
+      const cur = Number($("#titleOffset").value)||0;
+      const delta = (e.code==="ArrowUp"? -1 : 1);
+      const val = Math.max(-30, Math.min(30, cur+delta));
+      $("#titleOffset").value = val;
+      document.documentElement.style.setProperty('--title-y',val/100*120+'px');
+      API.updateSettings({titleOffsetPct:val});
+      return;
+    }
+    if(e.altKey && (e.code==="ArrowUp"||e.code==="ArrowDown")){
+      const cur = Number($("#qrOffset").value)||0;
+      const delta = (e.code==="ArrowUp"? -1 : 1);
+      const val = Math.max(-40, Math.min(40, cur+delta));
+      $("#qrOffset").value = val;
+      document.documentElement.style.setProperty('--qr-y',val/100*160+'px');
+      API.updateSettings({qrOffsetPct:val});
+      return;
+    }
+  }, {capture:true, passive:false});
+
+  /* ===== Reset visor ===== */
+  $("#resetView").addEventListener("click",async()=>{
+    await API.updateSettings({
+      titleText:"¡Subí tu foto con el QR!",fontSizePx:44,
+      /* offsets a 0 */
+      titleOffsetPct:0,qrOffsetPct:0,titleXOffsetPct:0,qrXOffsetPct:0,
+      /* colores (solo visor) */
+      bgColor:"#000000",textColor:"#ffffff",accentColor:"#d4af37",
+      theme:"fireworks",fxIntensity:70,qrAuto:true,qrPercent:58,
+      textPosV:"center",textAlign:"center",staticTheme:"none"
+    });
+    layoutOverlay(true);
+    toast("Visor reseteado");
+  });
+
+  /* ===== Subida demo local ===== */
+  if(isUploadMode){
+    $("#btnUpload").addEventListener("click",async()=>{
+      const f=$("#upFile").files?.[0]; if(!f){toast("Elegí una foto");return;}
+      const name=$("#upName").value||"Invitado";
+      const url=URL.createObjectURL(f);
+      await API.addPhoto({url,name});
+      toast("Foto subida ✅");
+      setTimeout(()=>{location.href=location.href.replace(/#subir$/,'');},700);
+    });
+  }
+
+  /* ======= EDICIÓN EN PANTALLA COMPLETA (ARRASTRAR) ======= */
+  let dragMode=false, dragTarget=null, dragStart=null, safeRect=null;
+
+  function pxFromPctX(pct){ return (pct/100)*160; }  // escala aprox para mapping visual
+  function pxFromPctY(pct){ return (pct/100)*120; }
+
+  function pctXFromPx(px){ return Math.max(-40, Math.min(40, (px/160)*100)); }
+  function pctYFromPx(px){ return Math.max(-40, Math.min(40, (px/160)*100)); }
+
+  function startDragMode(){
+    dragMode=true;
+    $("#editExit").disabled=false;
+    $("#viewer").classList.add("drag-mode");
+    $("#dragHint").classList.remove("hidden");
+    enterFullscreen($("#viewer"));
+    safeRect = $(".safePad").getBoundingClientRect();
+    bindDrag("#titlesGroup");
+    bindDrag("#qrCenter");
+  }
+  function stopDragMode(save=false){
+    dragMode=false; dragTarget=null; dragStart=null; safeRect=null;
+    $("#viewer").classList.remove("drag-mode");
+    $("#dragHint").classList.add("hidden");
+    $("#editExit").disabled=true;
+    if(isFullscreen()) exitFullscreen();
+    if(save) toast("Posiciones guardadas ✅");
+    unbindDrag("#titlesGroup");
+    unbindDrag("#qrCenter");
+  }
+
+  $("#editFull").addEventListener("click",()=>{ if(!dragMode) startDragMode(); });
+  $("#editExit").addEventListener("click",()=>{ stopDragMode(true); });
+
+  function bindDrag(sel){
+    const el=$(sel);
+    el.style.pointerEvents="auto";
+    el.addEventListener("pointerdown",onDown);
+  }
+  function unbindDrag(sel){
+    const el=$(sel);
+    el.style.pointerEvents="none";
+    el.removeEventListener("pointerdown",onDown);
+    window.removeEventListener("pointermove",onMove);
+    window.removeEventListener("pointerup",onUp);
+  }
+
+  function onDown(e){
+    if(!dragMode) return;
+    dragTarget = e.currentTarget;
+    const st = getComputedStyle(document.documentElement);
+    const baseX = dragTarget.id==="titlesGroup" ? parseFloat(st.getPropertyValue('--title-x'))||0 : parseFloat(st.getPropertyValue('--qr-x'))||0;
+    const baseY = dragTarget.id==="titlesGroup" ? parseFloat(st.getPropertyValue('--title-y'))||0 : parseFloat(st.getPropertyValue('--qr-y'))||0;
+    dragStart = {x:e.clientX, y:e.clientY, baseX, baseY};
+    window.addEventListener("pointermove",onMove);
+    window.addEventListener("pointerup",onUp);
+  }
+  function onMove(e){
+    if(!dragMode || !dragTarget || !dragStart) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    let nx = dragStart.baseX + dx;
+    let ny = dragStart.baseY + dy;
+
+    /* Limitar dentro de la safePad aprox */
+    const pad = 24;
+    const r = safeRect;
+    const maxX = (r.width/2) - pad;
+    const maxY = (r.height/2) - pad;
+    nx = Math.max(-maxX, Math.min(maxX, nx));
+    ny = Math.max(-maxY, Math.min(maxY, ny));
+
+    if(dragTarget.id==="titlesGroup"){
+      document.documentElement.style.setProperty('--title-x', nx+'px');
+      document.documentElement.style.setProperty('--title-y', ny+'px');
+    }else{
+      document.documentElement.style.setProperty('--qr-x', nx+'px');
+      document.documentElement.style.setProperty('--qr-y', ny+'px');
+    }
+  }
+  function onUp(){
+    if(!dragMode || !dragTarget) return;
+    const st = getComputedStyle(document.documentElement);
+    if(dragTarget.id==="titlesGroup"){
+      const xpx = parseFloat(st.getPropertyValue('--title-x'))||0;
+      const ypx = parseFloat(st.getPropertyValue('--title-y'))||0;
+      const titleXOffsetPct = pctXFromPx(xpx);
+      const titleOffsetPct  = pctYFromPx(ypx); /* mantiene compat vertical */
+      $("#titleOffsetX").value = Math.round(titleXOffsetPct);
+      $("#titleOffset").value  = Math.round(titleOffsetPct);
+      API.updateSettings({titleXOffsetPct, titleOffsetPct});
+    }else{
+      const xpx = parseFloat(st.getPropertyValue('--qr-x'))||0;
+      const ypx = parseFloat(st.getPropertyValue('--qr-y'))||0;
+      const qrXOffsetPct = pctXFromPx(xpx);
+      const qrOffsetPct  = pctYFromPx(ypx);
+      $("#qrOffsetX").value = Math.round(qrXOffsetPct);
+      $("#qrOffset").value  = Math.round(qrOffsetPct);
+      API.updateSettings({qrXOffsetPct, qrOffsetPct});
+    }
+    dragTarget=null; dragStart=null;
+  }
+
+  /* Primera disposición */
+  layoutOverlay(true);
+})();
+</script>
+</body>
+</html>
