@@ -9,25 +9,15 @@
 
 <style>
 :root{
-  /* ⚠️ Ahora la página tiene color fijo; el visor usa --screen-bg */
+  /* Visor: el color de fondo solo afecta a los visores, no a toda la página */
   --screen-bg:#000000; --text:#ffffff; --accent:#d4af37;
   --ui-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --title-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --subtitle-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --logo-reserve-min:72px; --logo-reserve-frac:0.12;
-
-  /* Nuevos offsets 2D (mantengo compat c/ antiguos) */
-  --title-x: 0px;         /* horizontal */
-  --title-y: 0px;         /* vertical (reemplaza --title-offset) */
-  --qr-x: 0px;            /* horizontal */
-  --qr-y: 0px;            /* vertical (reemplaza --qr-offset) */
 }
 *{box-sizing:border-box}
-body{
-  margin:0;font-family:var(--ui-font);
-  background:#0b0e14; /* ⬅️ color de página ESTÁTICO */
-  color:var(--text)
-}
+body{margin:0;font-family:var(--ui-font);background:#0b0e14;color:var(--text)}
 button{cursor:pointer}
 .hidden{display:none}
 
@@ -43,8 +33,7 @@ header{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.45);backdrop-filte
 /* Layout */
 main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-.grid{display:grid;gap:16px;grid-template-columns:1.5fr .7fr}
-@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.grid2{display:grid;gap:16px;grid-template-columns:1fr}
 .sectionTitle{font-size:13px;color:#cbd5e1;margin-bottom:8px}
 .row{display:flex;gap:12px;align-items:center;margin:10px 0}
 label{font-size:14px;color:#e2e8f0;min-width:160px}
@@ -60,49 +49,41 @@ button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rg
 .tag{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;font-size:12px;color:#e2e8f0}
 .modeBadge{font-size:11px;color:#e2e8f0;border:1px dashed rgba(255,255,255,.18);border-radius:8px;padding:2px 8px;background:rgba(255,255,255,.06)}
 
-/* Visor */
+/* Visores (reutilizables) */
 .viewer{
   width:100%;
   aspect-ratio:16/9;
-  background:var(--screen-bg); /* ⬅️ solo cambia el color del VISOR */
+  background:var(--screen-bg);
   border:1px solid rgba(255,255,255,.12);
   border-radius:16px;overflow:hidden;position:relative
 }
 .viewer:fullscreen{width:100vw!important;height:100vh!important;aspect-ratio:auto;border:none;border-radius:0}
 
-/* Capas */
-#fxCanvas{position:absolute;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}
-#staticDecor{position:absolute;inset:0;z-index:2;pointer-events:none}
-#mainPhoto{position:relative;z-index:0;width:100%;height:100%;object-fit:cover}
-#mainPhoto.hidden{display:none}
+/* Capas internas */
+.fxCanvas{position:absolute;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}
+.staticDecor{position:absolute;inset:0;z-index:2;pointer-events:none}
+.mainPhoto{position:relative;z-index:0;width:100%;height:100%;object-fit:cover}
+.mainPhoto.hidden{display:none}
 .safePad{position:absolute;inset:18px;display:grid;place-items:center;pointer-events:none;z-index:3}
 
-/* Overlay y edición */
 .centerOverlay{position:absolute;inset:0;pointer-events:none;z-index:4}
 .centerInner{display:grid;gap:10px;justify-items:center;text-align:center;width:100%;height:100%;grid-template-rows:auto auto 1fr auto;padding-inline:min(2.6vw,28px);align-content:center}
 .centerInner.left{justify-items:start;text-align:left}
 .centerInner.center{justify-items:center;text-align:center}
 .centerInner.right{justify-items:end;text-align:right}
-#titlesGroup{
-  transform:translate(var(--title-x), var(--title-y)); /* ⬅️ 2D */
-  transition:.12s ease
-}
-#screenTitle{font-family:var(--title-font);font-weight:900;line-height:1.05;margin:0;color:var(--text);font-size:clamp(22px,3.6vw,44px);letter-spacing:.3px}
-#screenSubtitle{font-family:var(--subtitle-font);opacity:.9;font-size:clamp(13px,1.7vw,20px);margin:0;color:var(--text)}
+.titlesGroup{transition:.12s ease}
+.screenTitle{font-family:var(--title-font);font-weight:900;line-height:1.05;margin:0;color:var(--text);font-size:clamp(22px,3.6vw,44px);letter-spacing:.3px}
+.screenSubtitle{font-family:var(--subtitle-font);opacity:.9;font-size:clamp(13px,1.7vw,20px);margin:0;color:var(--text)}
 
 /* QR */
-#qrCenter{
-  align-self:center;justify-self:center;width:10px;height:10px;
-  transform:translate(var(--qr-x), var(--qr-y)); /* ⬅️ 2D */
-  transition:.12s ease;display:grid;place-items:center
-}
-#qrCenter img,#qrCenter canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+.qrCenter{align-self:center;justify-self:center;width:10px;height:10px;transition:.12s ease;display:grid;place-items:center}
+.qrCenter img,.qrCenter canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
 
 /* Logo */
-#logoSlot{width:min(42%,520px);min-height:var(--logo-reserve-min);display:grid;place-items:center;margin-top:8px;pointer-events:none}
-#logoImg{max-width:100%;max-height:18vh;object-fit:contain;display:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
+.logoSlot{width:min(42%,520px);min-height:var(--logo-reserve-min);display:grid;place-items:center;margin-top:8px;pointer-events:none}
+.logoImg{max-width:100%;max-height:18vh;object-fit:contain;display:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
 
-/* Controles */
+/* Controles visor */
 .ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:5}
 .ctrlBtn{background:#ffffff;border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:8px 10px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
 
@@ -118,14 +99,11 @@ button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rg
 .qrModal.show{display:block}
 .qrStage{position:absolute;inset:24px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:transparent;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35)}
 .qrModalInner{position:absolute;inset:0;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;align-content:center;justify-items:center;padding:24px}
-#qrBoxModal{width:10px;height:10px;display:grid;place-items:center}
-#qrBoxModal img,#qrBoxModal canvas{width:100%;height:100%;image-rendering:pixelated}
-#qrModalTitle,#qrModalSub{color:#fff}
 .qrClose{position:absolute;top:12px;right:12px;z-index:3}
 
-/* Modo arrastrar (resaltado) */
-.drag-mode #titlesGroup,
-.drag-mode #qrCenter{outline:2px dashed rgba(255,255,255,.65);border-radius:12px;pointer-events:auto}
+/* Modo arrastrar (resaltado) solo en visor grande */
+.drag-mode .titlesGroup,
+.drag-mode .qrCenter{outline:2px dashed rgba(255,255,255,.65);border-radius:12px;pointer-events:auto}
 .drag-hint{position:absolute;left:12px;bottom:12px;font-size:12px;background:rgba(0,0,0,.6);color:#fff;padding:6px 10px;border-radius:8px;z-index:6}
 </style>
 </head>
@@ -141,34 +119,40 @@ button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rg
 </header>
 
 <main id="app" data-mode="app">
+  <!-- ====== PANTALLA: visor grande + timeline ====== -->
   <section id="pantalla" class="tab-pane">
-    <div class="grid">
+    <div class="grid2">
       <div class="card">
         <div class="sectionTitle">Visor principal</div>
-        <div class="viewer" id="viewer">
-          <canvas id="fxCanvas"></canvas>
-          <div id="staticDecor"></div>
-          <img id="mainPhoto" class="hidden" alt="" aria-hidden="true"/>
+
+        <!-- VISOR GRANDE -->
+        <div class="viewer" id="viewer-main">
+          <canvas class="fxCanvas" id="fx-main"></canvas>
+          <div class="staticDecor" id="decor-main"></div>
+          <img class="mainPhoto hidden" id="photo-main" alt="" aria-hidden="true"/>
 
           <div class="safePad">
-            <div class="centerOverlay" id="overlay">
-              <div class="centerInner center" id="centerInner">
-                <div id="titlesGroup">
-                  <h1 id="screenTitle">¡Subí tu foto con el QR!</h1>
-                  <h2 id="screenSubtitle">Escaneá y subí 📲</h2>
+            <div class="centerOverlay">
+              <div class="centerInner center" id="inner-main">
+                <div class="titlesGroup" id="titles-main">
+                  <h1 class="screenTitle" id="title-main">¡Subí tu foto con el QR!</h1>
+                  <h2 class="screenSubtitle" id="subtitle-main">Escaneá y subí 📲</h2>
                 </div>
 
-                <div id="qrCenter"><!-- QR dinámico --></div>
+                <div class="qrCenter" id="qr-main"><!-- QR dinámico --></div>
 
-                <div id="logoSlot"><img id="logoImg" alt="Logo del evento"/></div>
+                <div class="logoSlot"><img class="logoImg" id="logo-main" alt="Logo del evento"/></div>
               </div>
             </div>
           </div>
 
-          <div class="ctrls"><button id="btnFull" class="ctrlBtn" title="Pantalla completa" type="button">⛶</button></div>
+          <div class="ctrls">
+            <button id="btnFullMain" class="ctrlBtn" title="Pantalla completa" type="button">⛶</button>
+          </div>
           <div class="drag-hint hidden" id="dragHint">Arrastrá Título o QR. Esc para salir.</div>
         </div>
 
+        <!-- TIMELINE -->
         <div class="timeline">
           <div class="row" style="justify-content:space-between;align-items:center;">
             <div class="small">Línea de tiempo — <span id="countPhotos">0 fotos</span></div>
@@ -177,105 +161,133 @@ button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rg
           <div id="timelineRail" class="rail"></div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- Editor -->
+  <!-- ====== AJUSTES: editor + visor mini ====== -->
+  <section id="ajustes" class="tab-pane hidden">
+    <div class="grid2">
       <div class="card">
-        <div class="sectionTitle">Editor de pantalla</div>
-        <div class="row"><span class="tag">Sala: <strong id="roomIdSide">—</strong></span></div>
-
-        <div class="row"><label>Texto</label><input id="titleText" type="text" placeholder="¡Subí tu foto con el QR!"/></div>
-        <div class="row"><label>Tamaño de letra (px)</label><input id="fontSize" type="number" min="16" step="2" value="44"/></div>
-
-        <div class="row"><label>Offset título (↑/↓) %</label><input id="titleOffset" type="range" min="-30" max="30" step="1" value="0"/></div>
-        <div class="row"><label>Offset QR (↑/↓) %</label><input id="qrOffset" type="range" min="-40" max="40" step="1" value="0"/></div>
-
-        <!-- NUEVOS: offsets horizontales -->
-        <div class="row"><label>Offset título (↔) %</label><input id="titleOffsetX" type="range" min="-40" max="40" step="1" value="0"/></div>
-        <div class="row"><label>Offset QR (↔) %</label><input id="qrOffsetX" type="range" min="-40" max="40" step="1" value="0"/></div>
-
-        <div class="row"><label>Estilo tipográfico</label>
-          <select id="fontPreset">
-            <option value='{"title":"Bebas Neue","subtitle":"Inter"}'>Bebas Neue + Inter</option>
-            <option value='{"title":"Playfair Display","subtitle":"Playfair Display"}'>Playfair Display</option>
-            <option value='{"title":"Cinzel","subtitle":"Cinzel"}'>Cinzel</option>
-            <option value='{"title":"Dancing Script","subtitle":"Inter"}'>Dancing Script + Inter</option>
-            <option value='{"title":"Great Vibes","subtitle":"Poppins"}'>Great Vibes + Poppins</option>
-            <option value='{"title":"Inter","subtitle":"Inter"}'>Inter</option>
-            <option value='{"title":"Poppins","subtitle":"Poppins"}' selected>Poppins</option>
-          </select>
+        <div class="row" style="justify-content:space-between;align-items:center;margin-top:0">
+          <div class="sectionTitle">Editor (impacta en la pantalla)</div>
+          <span class="tag">Sala: <strong id="roomIdSide">—</strong></span>
         </div>
 
-        <!-- ⚠️ Color de página queda fijo; este solo cambia el VISOR -->
-        <div class="row"><label>Color fondo (visor)</label><input id="bgColor" type="color" value="#000000"/></div>
-        <div class="row"><label>Color de letras</label><input id="textColor" type="color" value="#ffffff"/></div>
-        <div class="row"><label>Color acento (temas)</label><input id="accentColor" type="color" value="#d4af37"/></div>
+        <!-- VISOR MINI DE PREVISUALIZACIÓN -->
+        <div class="row" style="width:100%;align-items:flex-start">
+          <div style="flex:1;max-width:520px">
+            <div class="small" style="margin-bottom:6px">Previsualización en vivo</div>
+            <div class="viewer" id="viewer-prev" style="aspect-ratio:16/9;max-width:520px">
+              <canvas class="fxCanvas" id="fx-prev"></canvas>
+              <div class="staticDecor" id="decor-prev"></div>
+              <img class="mainPhoto hidden" id="photo-prev" alt="" aria-hidden="true"/>
 
-        <div class="row"><label>Tema animado</label>
-          <select id="theme">
-            <option value="confetti">Confetti 🎊</option>
-            <option value="fireworks" selected>Fuegos Artificiales 🎆</option>
-            <option value="neon">Rayos Neón 🔦</option>
-            <option value="luces">Bokeh ✨</option>
-          </select>
-        </div>
+              <div class="safePad">
+                <div class="centerOverlay">
+                  <div class="centerInner center" id="inner-prev">
+                    <div class="titlesGroup" id="titles-prev">
+                      <h1 class="screenTitle" id="title-prev">¡Subí tu foto con el QR!</h1>
+                      <h2 class="screenSubtitle" id="subtitle-prev">Escaneá y subí 📲</h2>
+                    </div>
 
-        <div class="row"><label>Intensidad animados</label><input id="fxIntensity" type="range" min="0" max="100" value="70"/></div>
+                    <div class="qrCenter" id="qr-prev"><!-- QR dinámico --></div>
 
-        <div class="row"><label>Decoración estática</label>
-          <select id="staticTheme">
-            <option value="none" selected>Sin decoración</option>
-            <option value="frame-gold">Marco dorado ⊕</option>
-            <option value="neon-corners">Esquinas neón 💡</option>
-            <option value="disco-ball">Bola disco 🪩</option>
-            <option value="vip-ropes">Corralito VIP 🚧</option>
-            <option value="skyline">Skyline nocturno 🌃</option>
-          </select>
-        </div>
+                    <div class="logoSlot"><img class="logoImg" id="logo-prev" alt="Logo del evento"/></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <div class="row">
-          <label>Posición vertical</label>
-          <select id="textPosV">
-            <option value="center" selected>Centro</option>
-            <option value="top">Arriba</option>
-            <option value="bottom">Abajo</option>
-          </select>
-        </div>
+            <div class="row" style="gap:8px;margin-top:10px">
+              <button id="genQR" class="secondary" type="button">Mostrar QR (modal)</button>
+              <button id="resetView" class="secondary" type="button">Reset visor</button>
+              <button id="editFull" type="button">Editar en pantalla completa (arrastrar)</button>
+              <button id="editExit" class="secondary" type="button" disabled>Guardar y salir</button>
+            </div>
+          </div>
 
-        <div class="row">
-          <label>Alineación</label>
-          <select id="textAlign">
-            <option value="center" selected>Centro</option>
-            <option value="left">Izquierda</option>
-            <option value="right">Derecha</option>
-          </select>
-        </div>
+          <!-- CONTROLES -->
+          <div style="flex:1.2;min-width:280px">
+            <div class="row"><label>Texto</label><input id="titleText" type="text" placeholder="¡Subí tu foto con el QR!"/></div>
+            <div class="row"><label>Tamaño de letra (px)</label><input id="fontSize" type="number" min="16" step="2" value="44"/></div>
 
-        <div class="sectionTitle" style="margin-top:18px">QR</div>
-        <div class="row"><label><input id="qrAuto" type="checkbox" checked/> Tamaño automático</label></div>
-        <div class="row"><label>Tamaño QR (%)</label><input id="qrPercent" type="range" min="20" max="80" value="58"/></div>
+            <!-- RANGOS AMPLIADOS -->
+            <div class="row"><label>Offset título (↑/↓) %</label><input id="titleOffset" type="range" min="-120" max="120" step="1" value="0"/></div>
+            <div class="row"><label>Offset QR (↑/↓) %</label><input id="qrOffset" type="range" min="-120" max="120" step="1" value="0"/></div>
 
-        <div class="sectionTitle" style="margin-top:18px">Logo</div>
-        <div class="row"><label>Archivo (PNG/JPG/SVG/WEBP/AVIF/GIF)</label><input id="logoFile" type="file" accept=".png,.jpg,.jpeg,.svg,.webp,.avif,.gif,image/*"/></div>
-        <div class="row"><label>Altura máx. del logo (vh)</label><input id="logoMaxVH" type="number" min="6" max="25" step="1" value="18"/></div>
+            <div class="row"><label>Offset título (↔) %</label><input id="titleOffsetX" type="range" min="-120" max="120" step="1" value="0"/></div>
+            <div class="row"><label>Offset QR (↔) %</label><input id="qrOffsetX" type="range" min="-120" max="120" step="1" value="0"/></div>
 
-        <div class="row" style="flex-wrap:wrap;gap:8px">
-          <button class="secondary" id="genQR" type="button">Generar QR</button>
-          <button class="secondary" id="resetView" type="button">Reset visor</button>
-          <!-- NUEVO: edición fullscreen -->
-          <button id="editFull" type="button">Editar en pantalla completa (arrastrar)</button>
-          <button id="editExit" class="secondary" type="button" disabled>Guardar y salir</button>
+            <div class="row"><label>Estilo tipográfico</label>
+              <select id="fontPreset">
+                <option value='{"title":"Bebas Neue","subtitle":"Inter"}'>Bebas Neue + Inter</option>
+                <option value='{"title":"Playfair Display","subtitle":"Playfair Display"}'>Playfair Display</option>
+                <option value='{"title":"Cinzel","subtitle":"Cinzel"}'>Cinzel</option>
+                <option value='{"title":"Dancing Script","subtitle":"Inter"}'>Dancing Script + Inter</option>
+                <option value='{"title":"Great Vibes","subtitle":"Poppins"}'>Great Vibes + Poppins</option>
+                <option value='{"title":"Inter","subtitle":"Inter"}'>Inter</option>
+                <option value='{"title":"Poppins","subtitle":"Poppins"}' selected>Poppins</option>
+              </select>
+            </div>
+
+            <div class="row"><label>Color fondo (visor)</label><input id="bgColor" type="color" value="#000000"/></div>
+            <div class="row"><label>Color de letras</label><input id="textColor" type="color" value="#ffffff"/></div>
+            <div class="row"><label>Color acento (temas)</label><input id="accentColor" type="color" value="#d4af37"/></div>
+
+            <div class="row"><label>Tema animado</label>
+              <select id="theme">
+                <option value="confetti">Confetti 🎊</option>
+                <option value="fireworks" selected>Fuegos Artificiales 🎆</option>
+                <option value="neon">Rayos Neón 🔦</option>
+                <option value="luces">Bokeh ✨</option>
+              </select>
+            </div>
+
+            <div class="row"><label>Intensidad animados</label><input id="fxIntensity" type="range" min="0" max="100" value="70"/></div>
+
+            <div class="row"><label>Decoración estática</label>
+              <select id="staticTheme">
+                <option value="none" selected>Sin decoración</option>
+                <option value="frame-gold">Marco dorado ⊕</option>
+                <option value="neon-corners">Esquinas neón 💡</option>
+                <option value="disco-ball">Bola disco 🪩</option>
+                <option value="vip-ropes">Corralito VIP 🚧</option>
+                <option value="skyline">Skyline nocturno 🌃</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label>Posición vertical</label>
+              <select id="textPosV">
+                <option value="center" selected>Centro</option>
+                <option value="top">Arriba</option>
+                <option value="bottom">Abajo</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label>Alineación</label>
+              <select id="textAlign">
+                <option value="center" selected>Centro</option>
+                <option value="left">Izquierda</option>
+                <option value="right">Derecha</option>
+              </select>
+            </div>
+
+            <div class="sectionTitle" style="margin-top:18px">QR</div>
+            <div class="row"><label><input id="qrAuto" type="checkbox" checked/> Tamaño automático</label></div>
+            <div class="row"><label>Tamaño QR (%)</label><input id="qrPercent" type="range" min="20" max="80" value="58"/></div>
+
+            <div class="sectionTitle" style="margin-top:18px">Logo</div>
+            <div class="row"><label>Archivo (PNG/JPG/SVG/WEBP/AVIF/GIF)</label><input id="logoFile" type="file" accept=".png,.jpg,.jpeg,.svg,.webp,.avif,.gif,image/*"/></div>
+            <div class="row"><label>Altura máx. del logo (vh)</label><input id="logoMaxVH" type="number" min="6" max="25" step="1" value="18"/></div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="ajustes" class="tab-pane hidden">
-    <div class="card"><div class="small">
-      Entrá con <strong>“Editar en pantalla completa (arrastrar)”</strong> para mover Título y QR con el mouse o dedo. Se guarda automático al soltar.
-    </div></div>
-  </section>
-
-  <!-- SUBIR desde QR (demo local) -->
+  <!-- SUBIR desde QR (misma sala) -->
   <section id="upload" class="hidden">
     <div class="card" style="max-width:520px;margin:24px auto">
       <div class="row" style="justify-content:space-between">
@@ -328,7 +340,10 @@ function makeQRImg(url, size, {bg='#ffffff', fg='#000000'}={}){
   img.style.width="100%"; img.style.height="100%"; img.style.imageRendering="pixelated";
   return img;
 }
-function showQR(show){ const el=$("#qrCenter"); if(el){ el.style.display = show ? 'grid' : 'none'; } }
+function showQR(where, show){
+  const el = document.getElementById(`qr-${where}`);
+  if(el){ el.style.display = show ? 'grid' : 'none'; }
+}
 
 /* ===== IndexedDB (logos grandes) ===== */
 const IDB={db:null,async open(){if(this.db) return this.db;return new Promise((res,rej)=>{const r=indexedDB.open('qrwall-db',1);r.onupgradeneeded=()=>r.result.createObjectStore('logos');r.onsuccess=()=>{this.db=r.result;res(this.db);};r.onerror=()=>rej(r.error||new Error("IndexedDB bloqueada"));});},
@@ -338,20 +353,19 @@ async getLogo(key){const db=await this.open();return new Promise((res,rej)=>{con
 /* ===== Data local ===== */
 function localApi(roomId){
   const K=(k)=>`qrwall:${roomId}:${k}`;
-  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d));}catch{return d;}};
+  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d));}catch{return d;}}
   const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
   if(!localStorage.getItem(K('settings'))){
     write(K('settings'),{
       titleText:"¡Subí tu foto con el QR!",
       fontSizePx:44,
-      /* ⚠️ Página queda fija. Este color ahora es SOLO del visor */
       bgColor:"#000000",textColor:"#ffffff",accentColor:"#d4af37",
       titleFont:"Poppins",subtitleFont:"Poppins",
       theme:"fireworks",fxIntensity:70,
       qrAuto:true,qrPercent:58,
       textPosV:"center",textAlign:"center",
-      /* Compat + nuevos offsets 2D */
-      titleOffsetPct:0,qrOffsetPct:0, /* legacy (vertical) */
+      /* offsets en % relativos al área segura (±120) */
+      titleOffsetPct:0,qrOffsetPct:0,
       titleXOffsetPct:0, qrXOffsetPct:0,
       staticTheme:"none",
       logoUrl:"",logoRef:null,logoMaxVH:18,photoDurationMs:5000
@@ -365,7 +379,6 @@ function localApi(roomId){
     onSettingsSnapshot(cb){settingsSubs.add(cb);cb(read(K('settings'),{}));return()=>settingsSubs.delete(cb);},
     listenPhotos(cb){photosSubs.add(cb);cb(read(K('photos'),[]));return()=>photosSubs.delete(cb);},
     async addPhoto({url,name}){const list=read(K('photos'),[]);list.push({id:Date.now().toString(),url,name,createdAt:Date.now()});write(K('photos'),list);photosSubs.forEach(fn=>fn(list));},
-
     async uploadLogo(file){
       if(!file) throw new Error("Elegí un archivo");
       const SMALL_LIMIT = 3.5*1024*1024;
@@ -385,7 +398,7 @@ function localApi(roomId){
   };
 }
 
-/* ===== FX (resumido) ===== */
+/* ===== FX Engine (igual que antes, instancia por visor) ===== */
 class FXEngine{
   constructor(canvas, host){
     this.cv = canvas; this.host = host; this.ctx = canvas.getContext('2d');
@@ -413,8 +426,7 @@ class FXEngine{
   loop(t){this.ensureSize();if(!this.last) this.last=t;const dt=Math.min(0.05,(t-this.last)/1000);this.last=t;
     if(this.running){switch(this.theme){case'confetti':this.stepConfetti(dt);break;case'fireworks':this.stepFireworks(dt);break;case'neon':this.stepNeon(dt);break;case'luces':this.stepBokeh(dt);break;}}
     requestAnimationFrame(tt=>this.loop(tt));}
-  /* ... (motores visuales exactamente igual que tu versión anterior) ... */
-  /* Para brevedad, dejo la implementación completa que ya tenías aquí: confetti/fireworks/neon/luces */
+  /* (motores: confetti / fireworks / neon / luces) — omitidos aquí por brevedad, son iguales a tu versión ya funcional */
   stepConfetti(dt){const{ctx,w,h}=this;const cap=240*this.intensity+40;if(this.items.length<cap||Math.random()<0.02*this.intensity)this.spawnConfetti();
     ctx.clearRect(0,0,w,h);const wind=Math.sin(performance.now()/1500)*45;const next=[];
     for(const p of this.items){p.vy+=40*dt;p.vx+=wind*dt*0.6;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
@@ -446,9 +458,9 @@ class FXEngine{
       const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);g.addColorStop(0,`hsla(${b.h},100%,85%,${b.a})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();}}
 }
 
-/* ===== Decoraciones estáticas (igual que antes) ===== */
-function applyStaticDecor(kind, accent='#d4af37'){
-  const host=$("#staticDecor"); host.innerHTML=""; if(kind==="none") return;
+/* ===== Decoraciones estáticas (por visor) ===== */
+function applyStaticDecor(where, kind, accent='#d4af37'){
+  const host=document.getElementById(`decor-${where}`); host.innerHTML=""; if(kind==="none") return;
   const add=(el)=>{el.style.pointerEvents="none";host.appendChild(el);};
   if(kind==="frame-gold"){
     const f=document.createElement('div');
@@ -468,7 +480,58 @@ function applyStaticDecor(kind, accent='#d4af37'){
   }</svg>`;add(s);}
 }
 
+/* ===== Utilidades de layout por visor ===== */
+function computeLogoReserve(rect){
+  const frac=Number(getComputedStyle(document.documentElement).getPropertyValue('--logo-reserve-frac'))||0.12;
+  const minPx=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--logo-reserve-min'))||72;
+  return Math.max(minPx,rect.height*frac);
+}
+function sizeQR(rect, titleH, subH, s, logoPx){
+  const pad=22; const minS=Math.min(rect.width,rect.height);
+  if(s.qrAuto){const maxH=Math.max(120,rect.height-titleH-subH-logoPx-pad*2);const maxW=Math.max(120,rect.width-pad*2);return Math.floor(Math.min(maxH,maxW));}
+  const pct=Math.min(80,Math.max(20,Number(s.qrPercent||58))); return Math.floor(minS*pct/100);
+}
+
+/* Calcula y aplica posiciones para un visor (porcentaje relativo al área segura) */
+function applyPositions(where, settings){
+  const host = document.getElementById(`viewer-${where}`);
+  const safe = host.querySelector(".safePad").getBoundingClientRect();
+  const tg = document.getElementById(`titles-${where}`);
+  const qb = document.getElementById(`qr-${where}`);
+
+  const tx = (settings.titleXOffsetPct||0)/100 * (safe.width/2);
+  const ty = (settings.titleOffsetPct||0)/100  * (safe.height/2);
+  const qx = (settings.qrXOffsetPct||0)/100   * (safe.width/2);
+  const qy = (settings.qrOffsetPct||0)/100    * (safe.height/2);
+
+  tg.style.transform = `translate(${tx}px, ${ty}px)`;
+  qb.style.transform = `translate(${qx}px, ${qy}px)`;
+}
+
+function layoutOverlay(where, redrawQR=false){
+  const host = document.getElementById(`viewer-${where}`);
+  const safe = host.querySelector(".safePad").getBoundingClientRect();
+  const title = document.getElementById(`title-${where}`);
+  const subtitle = document.getElementById(`subtitle-${where}`);
+  const qrBox = document.getElementById(`qr-${where}`);
+  const logoImg = document.getElementById(`logo-${where}`);
+
+  API.getSettings().then(d=>{
+    applyPositions(where, d);
+    const reserve=computeLogoReserve(safe);
+    const s=sizeQR(safe,title.offsetHeight||0,subtitle.offsetHeight||0,d,reserve);
+    qrBox.style.width=s+"px";qrBox.style.height=s+"px";
+    if(redrawQR){
+      const url=new URL(location.href); url.hash="#subir";
+      qrBox.innerHTML=""; qrBox.appendChild(makeQRImg(url.toString(), s, {bg:'#ffffff', fg:'#000000'}));
+    }
+    logoImg.style.display=(d.logoUrl||d.logoRef)?"block":"none";
+  });
+}
+
 /* ===== App ===== */
+let API, fxMain, fxPrev;
+
 (async function(){
   let roomId = params.get("r") || "";
   if(!roomId){roomId=(Math.random().toString(36).slice(2,8)).toUpperCase();const url=new URL(location.href);url.searchParams.set("r",roomId);history.replaceState({}, "", url.toString());}
@@ -479,52 +542,50 @@ function applyStaticDecor(kind, accent='#d4af37'){
     document.querySelector(`[data-tab="${tab}"]`)?.classList.add("active");
     document.querySelectorAll(".tab-pane").forEach(p=>p.classList.add("hidden"));
     document.getElementById(tab)?.classList.remove("hidden");
-    if(tab==="pantalla"){ layoutOverlay(true); }
+    if(tab==="pantalla"){ layoutOverlay('main', true); }
+    if(tab==="ajustes"){ layoutOverlay('prev', true); }
   }
   document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>switchTab(btn.getAttribute("data-tab"))));
   if(isUploadMode){$("#pantalla").classList.add("hidden");$("#ajustes").classList.add("hidden");$("#upload").classList.remove("hidden");$("#tabs").classList.add("hidden");$(".brand").textContent="Subí tu foto";}
 
-  const API = localApi(roomId); $("#modeInfo").textContent="Modo "+API.mode;
-  const fx = new FXEngine($("#fxCanvas"), $("#viewer"));
+  API = localApi(roomId); $("#modeInfo").textContent="Modo "+API.mode;
+
+  // FX para ambos visores
+  fxMain = new FXEngine($("#fx-main"), $("#viewer-main"));
+  fxPrev = new FXEngine($("#fx-prev"), $("#viewer-prev"));
 
   function setRoot(d){
     document.documentElement.style.setProperty('--title-font', `"${d.titleFont||'Poppins'}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);
     document.documentElement.style.setProperty('--subtitle-font', `"${d.subtitleFont||'Poppins'}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);
     document.documentElement.style.setProperty('--text', d.textColor||'#fff');
     document.documentElement.style.setProperty('--accent', d.accentColor||'#d4af37');
-
-    /* ⬇️ SOLO el visor cambia de color */
     document.documentElement.style.setProperty('--screen-bg', d.bgColor||'#000');
 
-    /* Mapear offsets (legacy + nuevos) a variables CSS 2D */
-    const ty = ((d.titleOffsetPct??0)/100)*120;        /* px relativos aprox */
-    const qy = ((d.qrOffsetPct??0)/100)*160;
-    const tx = ((d.titleXOffsetPct??0)/100)*120;
-    const qx = ((d.qXOffsetFix||d.qrXOffsetPct||0)/100)*160;
+    fxMain.setColors({accent:d.accentColor,bg:d.bgColor});
+    fxPrev.setColors({accent:d.accentColor,bg:d.bgColor});
 
-    document.documentElement.style.setProperty('--title-y', ty+'px');
-    document.documentElement.style.setProperty('--qr-y', qy+'px');
-    document.documentElement.style.setProperty('--title-x', tx+'px');
-    document.documentElement.style.setProperty('--qr-x', qx+'px');
-
-    fx.setColors({accent:d.accentColor,bg:d.bgColor});
-    applyStaticDecor(d.staticTheme||"none", d.accentColor||'#d4af37');
+    applyStaticDecor('main', d.staticTheme||"none", d.accentColor||'#d4af37');
+    applyStaticDecor('prev', d.staticTheme||"none", d.accentColor||'#d4af37');
   }
 
   async function applyLogo(d){
-    const vLogo=$("#logoImg"), mLogo=$("#qrModalLogo"); let url="";
+    const logos = {main:$("#logo-main"), prev:$("#logo-prev"), modal:$("#qrModalLogo")};
+    let url="";
     if(d.logoUrl){ url=d.logoUrl; }
     else if(d.logoRef && d.logoRef.key){
       const blob = await IDB.getLogo(d.logoRef.key);
       if(blob){ url = URL.createObjectURL(blob); }
     }
-    if(url){ vLogo.src=url; vLogo.style.display="block"; vLogo.style.maxHeight=(d.logoMaxVH||18)+"vh";
-             mLogo.src=url; mLogo.style.display="block"; mLogo.style.maxHeight=(d.logoMaxVH||18)+"vh"; }
-    else { vLogo.removeAttribute("src"); vLogo.style.display="none";
-           mLogo.removeAttribute("src"); mLogo.style.display="none"; }
+    const vh=(d.logoMaxVH||18)+"vh";
+    for(const k of Object.keys(logos)){
+      const el=logos[k];
+      if(url){ el.src=url; el.style.display="block"; el.style.maxHeight=vh; }
+      else { el.removeAttribute("src"); el.style.display="none"; }
+    }
   }
 
   const applySettings=(d)=>{
+    // Controles
     $("#titleText").value=d.titleText??""; $("#fontSize").value=d.fontSizePx??44;
     $("#titleOffset").value=d.titleOffsetPct??0; $("#qrOffset").value=d.qrOffsetPct??0;
     $("#titleOffsetX").value=d.titleXOffsetPct??0; $("#qrOffsetX").value=d.qrXOffsetPct??0;
@@ -535,76 +596,68 @@ function applyStaticDecor(kind, accent='#d4af37'){
     $("#textPosV").value=d.textPosV||"center"; $("#textAlign").value=d.textAlign||"center";
     $("#logoMaxVH").value=d.logoMaxVH??18;
 
+    // Raíz / efectos / decoraciones
     setRoot(d);
-    $("#viewer").style.background="var(--screen-bg)"; /* refuerza color solo en visor */
-    $("#qrStage").style.background="transparent"; fx.setTheme(d.theme||'fireworks');
+    fxMain.setTheme(d.theme||'fireworks');
+    fxPrev.setTheme(d.theme||'fireworks');
+    fxMain.setIntensity(d.fxIntensity??70);
+    fxPrev.setIntensity(d.fxIntensity??70);
 
-    const ci=$("#centerInner"); ci.style.alignContent=(d.textPosV==="top"?"start":d.textPosV==="bottom"?"end":"center");
-    ci.classList.remove("left","center","right"); ci.classList.add(d.textAlign||"center");
+    // Texto y estilos en ambos visores
+    ["main","prev"].forEach(where=>{
+      const inner = document.getElementById(`inner-${where}`);
+      inner.style.alignContent=(d.textPosV==="top"?"start":d.textPosV==="bottom"?"end":"center");
+      inner.classList.remove("left","center","right"); inner.classList.add(d.textAlign||"center");
 
-    $("#screenTitle").textContent=d.titleText??""; $("#screenTitle").style.fontSize=(d.fontSizePx??44)+"px";
-    $("#screenTitle").style.color=d.textColor||"#fff"; $("#screenSubtitle").style.color=d.textColor||"#fff";
+      const t = document.getElementById(`title-${where}`);
+      const s = document.getElementById(`subtitle-${where}`);
+      t.textContent=d.titleText??""; t.style.fontSize=(d.fontSizePx??44)+"px";
+      t.style.color=d.textColor||"#fff"; s.style.color=d.textColor||"#fff";
+    });
+
     $("#qrModalTitle").textContent=d.titleText??"";
 
     applyLogo(d);
-    layoutOverlay(true);
-    showQR(true);
+
+    layoutOverlay('main', true);
+    layoutOverlay('prev', true);
+    showQR('main', true);
+    showQR('prev', true);
   };
   API.onSettingsSnapshot(applySettings);
 
-  /* ===== Controles ===== */
-  $("#titleText").addEventListener("input",debounce(e=>{API.updateSettings({titleText:e.target.value});$("#screenTitle").textContent=e.target.value;layoutOverlay(true);},120));
-  $("#fontSize").addEventListener("input",e=>{const v=Number(e.target.value)||44;$("#screenTitle").style.fontSize=v+"px";API.updateSettings({fontSizePx:v});});
-  $("#titleOffset").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--title-y',v/100*120+'px');API.updateSettings({titleOffsetPct:v});});
-  $("#qrOffset").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--qr-y',v/100*160+'px');API.updateSettings({qrOffsetPct:v});});
+  /* ===== Controles (Ajustes) ===== */
+  $("#titleText").addEventListener("input",debounce(e=>{API.updateSettings({titleText:e.target.value});},120));
+  $("#fontSize").addEventListener("input",e=>{const v=Number(e.target.value)||44;API.updateSettings({fontSizePx:v});});
+  // Actualizamos solo el estado; el cálculo se hace por visor con applyPositions/layoutOverlay
+  $("#titleOffset").addEventListener("input",e=>{API.updateSettings({titleOffsetPct:Number(e.target.value)||0});});
+  $("#qrOffset").addEventListener("input",e=>{API.updateSettings({qrOffsetPct:Number(e.target.value)||0});});
+  $("#titleOffsetX").addEventListener("input",e=>{API.updateSettings({titleXOffsetPct:Number(e.target.value)||0});});
+  $("#qrOffsetX").addEventListener("input",e=>{API.updateSettings({qrXOffsetPct:Number(e.target.value)||0});});
 
-  /* Nuevos sliders X */
-  $("#titleOffsetX").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--title-x',v/100*120+'px');API.updateSettings({titleXOffsetPct:v});});
-  $("#qrOffsetX").addEventListener("input",e=>{const v=Number(e.target.value)||0;document.documentElement.style.setProperty('--qr-x',v/100*160+'px');API.updateSettings({qrXOffsetPct:v});});
-
-  $("#fxIntensity").addEventListener("input",e=>{const v=Number(e.target.value)||0;fx.setIntensity(v);API.updateSettings({fxIntensity:v});});
+  $("#fxIntensity").addEventListener("input",e=>{const v=Number(e.target.value)||0;fxMain.setIntensity(v);fxPrev.setIntensity(v);API.updateSettings({fxIntensity:v});});
   $("#bgColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--screen-bg',v);API.updateSettings({bgColor:v});});
-  $("#textColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--text',v);$("#screenTitle").style.color=v;$("#screenSubtitle").style.color=v;API.updateSettings({textColor:v});});
-  $("#accentColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--accent',v);applyStaticDecor($("#staticTheme").value,v);API.updateSettings({accentColor:v});});
+  $("#textColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--text',v);API.updateSettings({textColor:v});});
+  $("#accentColor").addEventListener("input",e=>{const v=e.target.value;document.documentElement.style.setProperty('--accent',v);applyStaticDecor('main',$("#staticTheme").value,v);applyStaticDecor('prev',$("#staticTheme").value,v);API.updateSettings({accentColor:v});});
   $("#fontPreset").addEventListener("change",e=>{const obj=JSON.parse(e.target.value);document.documentElement.style.setProperty('--title-font',`"${obj.title}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);document.documentElement.style.setProperty('--subtitle-font',`"${obj.subtitle}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);API.updateSettings({titleFont:obj.title,subtitleFont:obj.subtitle});});
-  $("#theme").addEventListener("change",e=>{fx.setTheme(e.target.value);API.updateSettings({theme:e.target.value});});
-  $("#staticTheme").addEventListener("change",e=>{applyStaticDecor(e.target.value,$("#accentColor").value);API.updateSettings({staticTheme:e.target.value});});
-  $("#qrAuto").addEventListener("change",e=>{API.updateSettings({qrAuto:e.target.checked});layoutOverlay(true);});
-  $("#qrPercent").addEventListener("input",e=>{API.updateSettings({qrPercent:Number(e.target.value)});layoutOverlay(true);});
-  $("#textPosV").addEventListener("change",e=>{const ci=$("#centerInner");ci.style.alignContent=(e.target.value==="top"?"start":e.target.value==="bottom"?"end":"center");API.updateSettings({textPosV:e.target.value});});
-  $("#textAlign").addEventListener("change",e=>{const ci=$("#centerInner");ci.classList.remove("left","center","right");ci.classList.add(e.target.value);API.updateSettings({textAlign:e.target.value});});
-  $("#logoMaxVH").addEventListener("input",e=>{const v=Math.min(25,Math.max(6,Number(e.target.value)||18));$("#logoImg").style.maxHeight=v+"vh";$("#qrModalLogo").style.maxHeight=v+"vh";API.updateSettings({logoMaxVH:v});layoutOverlay(true);});
+  $("#theme").addEventListener("change",e=>{fxMain.setTheme(e.target.value);fxPrev.setTheme(e.target.value);API.updateSettings({theme:e.target.value});});
+  $("#staticTheme").addEventListener("change",e=>{applyStaticDecor('main',e.target.value,$("#accentColor").value);applyStaticDecor('prev',e.target.value,$("#accentColor").value);API.updateSettings({staticTheme:e.target.value});});
+  $("#qrAuto").addEventListener("change",e=>{API.updateSettings({qrAuto:e.target.checked});layoutOverlay('main',true);layoutOverlay('prev',true);});
+  $("#qrPercent").addEventListener("input",e=>{API.updateSettings({qrPercent:Number(e.target.value)});layoutOverlay('main',true);layoutOverlay('prev',true);});
+  $("#textPosV").addEventListener("change",e=>{API.updateSettings({textPosV:e.target.value});});
+  $("#textAlign").addEventListener("change",e=>{API.updateSettings({textAlign:e.target.value});});
+  $("#logoMaxVH").addEventListener("input",e=>{const v=Math.min(25,Math.max(6,Number(e.target.value)||18));API.updateSettings({logoMaxVH:v});layoutOverlay('main',true);layoutOverlay('prev',true);});
   $("#logoFile").addEventListener("change",async(ev)=>{const f=ev.target.files?.[0]; if(!f) return; try{await API.uploadLogo(f); toast("Logo actualizado ✅");}catch(e){toast(e.message||"No se pudo subir el logo");}});
 
-  /* ===== Modal QR ===== */
+  /* ===== Botones visor/QR ===== */
+  $("#btnFullMain").addEventListener("click",()=>{ if(isFullscreen()) exitFullscreen(); else enterFullscreen($("#viewer-main")); });
+
   const qrModal=$("#qrModal"), qrBoxModal=$("#qrBoxModal"), qrClose=$("#qrClose");
   $("#genQR").addEventListener("click",()=>openQRModal()); qrClose.addEventListener("click",closeQRModal);
   qrModal.addEventListener("click",(e)=>{if(e.target===qrModal)closeQRModal();});
   function openQRModal(){qrModal.classList.add("show");syncModalFromSettings();layoutQRModal();enterFullscreen($("#qrStage"));$("#dragHint")?.classList.add("hidden");}
   function closeQRModal(){qrModal.classList.remove("show");if(isFullscreen()) exitFullscreen();}
   function syncModalFromSettings(){API.getSettings().then(async d=>{setRoot(d);await applyLogo(d);const url=new URL(location.href);url.hash="#subir";qrBoxModal.innerHTML="";const stage=$("#qrStage").getBoundingClientRect();const size=Math.floor(Math.min(stage.width,stage.height)*0.62);qrBoxModal.appendChild(makeQRImg(url.toString(),size,{bg:'#ffffff',fg:'#000000'}));layoutQRModal();});}
-
-  /* ===== Layout QR ===== */
-  function sizeQR(rect, titleH, subH, s, logoPx){
-    const pad=22; const minS=Math.min(rect.width,rect.height);
-    if(s.qrAuto){const maxH=Math.max(120,rect.height-titleH-subH-logoPx-pad*2);const maxW=Math.max(120,rect.width-pad*2);return Math.floor(Math.min(maxH,maxW));}
-    const pct=Math.min(80,Math.max(20,Number(s.qrPercent||58))); return Math.floor(minS*pct/100);
-  }
-  function computeLogoReserve(rect){const frac=Number(getComputedStyle(document.documentElement).getPropertyValue('--logo-reserve-frac'))||0.12;const minPx=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--logo-reserve-min'))||72;return Math.max(minPx,rect.height*frac);}
-  function layoutOverlay(redrawQR=false){
-    const safe=document.querySelector(".safePad").getBoundingClientRect(); const title=$("#screenTitle"); const subtitle=$("#screenSubtitle"); const qrBox=$("#qrCenter");
-    API.getSettings().then(d=>{
-      const reserve=computeLogoReserve(safe);
-      const s=sizeQR(safe,title.offsetHeight||0,subtitle.offsetHeight||0,d,reserve);
-      qrBox.style.width=s+"px";qrBox.style.height=s+"px";
-      if(redrawQR){
-        const url=new URL(location.href); url.hash="#subir";
-        qrBox.innerHTML="";
-        qrBox.appendChild(makeQRImg(url.toString(), s, {bg:'#ffffff', fg:'#000000'}));
-      }
-      $("#logoImg").style.display=(d.logoUrl||d.logoRef)?"block":"none";
-    });
-  }
   function layoutQRModal(){
     const stage=$("#qrStage").getBoundingClientRect();const titleH=$("#qrModalTitle").offsetHeight||0;const subH=$("#qrModalSub").offsetHeight||0;
     API.getSettings().then(d=>{
@@ -616,61 +669,59 @@ function applyStaticDecor(kind, accent='#d4af37'){
       box.appendChild(makeQRImg(url.toString(), s,{bg:'#ffffff',fg:'#000000'}));
     });
   }
-  window.addEventListener("resize",()=>{layoutOverlay(true);if($("#qrModal").classList.contains("show")) layoutQRModal();});
-  document.addEventListener("fullscreenchange",()=>{layoutOverlay(true);if($("#qrModal").classList.contains("show")) layoutQRModal();});
-  $("#btnFull").addEventListener("click",()=>{if(isFullscreen()) exitFullscreen(); else enterFullscreen($("#viewer"));});
 
-  /* ===== Slideshow ===== */
+  window.addEventListener("resize",()=>{layoutOverlay('main', true);layoutOverlay('prev', true);if($("#qrModal").classList.contains("show")) layoutQRModal();});
+  document.addEventListener("fullscreenchange",()=>{layoutOverlay('main', true);layoutOverlay('prev', true);if($("#qrModal").classList.contains("show")) layoutQRModal();});
+
+  /* ===== Slideshow (refresca ambos visores) ===== */
   API.getSettings().then(d=>{photoDurationMs=d.photoDurationMs||5000;});
   API.listenPhotos(list=>{
     photos=list;
     paintTimeline();
-    showQR(photos.length===0);
+    const has = photos.length>0;
+    showQR('main', !has);
+    showQR('prev', !has);
     if(!isPaused) resetSlideshow();
   });
   function paintTimeline(){const rail=$("#timelineRail");rail.innerHTML="";photos.forEach((p,i)=>{const img=document.createElement("img");img.src=p.url;img.alt=p.name||"Foto";img.className="thumb";img.addEventListener("click",()=>{idx=i;showSlide();if(!isPaused) resetSlideshow(true);});rail.appendChild(img);});$("#countPhotos").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;}
   function showSlide(){
-    const img=$("#mainPhoto");
+    const m=$("#photo-main"), p=$("#photo-prev");
     if(!photos.length){
-      img.classList.add("hidden");
-      showQR(true);
-      layoutOverlay(true);
+      m.classList.add("hidden"); p.classList.add("hidden");
+      showQR('main', true); showQR('prev', true);
+      layoutOverlay('main', true); layoutOverlay('prev', true);
       return;
     }
-    img.classList.remove("hidden");
-    img.src=photos[idx%photos.length].url;
-    showQR(false);
+    const url=photos[idx%photos.length].url;
+    m.classList.remove("hidden"); p.classList.remove("hidden");
+    m.src=url; p.src=url;
+    showQR('main', false); showQR('prev', false);
   }
   function clearTimer(){if(timer){clearInterval(timer);timer=null;}}
   function resetSlideshow(keepIndex=false){
     clearTimer();
     if(!photos.length){
-      showQR(true);
-      layoutOverlay(true);
+      showQR('main', true); showQR('prev', true);
+      layoutOverlay('main', true); layoutOverlay('prev', true);
       return;
     }
     if(!keepIndex) idx=0;
     showSlide();
     if(isPaused) return;
     timer=setInterval(()=>{
-      if(!photos.length){
-        clearTimer();
-        showQR(true);
-        layoutOverlay(true);
-        return;
-      }
+      if(!photos.length){clearTimer();showQR('main',true);showQR('prev',true);layoutOverlay('main',true);layoutOverlay('prev',true);return;}
       idx++;
       if(idx>=photos.length){
         clearTimer();
-        showQR(true);
-        layoutOverlay(true);
+        showQR('main',true); showQR('prev',true);
+        layoutOverlay('main', true); layoutOverlay('prev', true);
       } else {
         showSlide();
       }
     }, photoDurationMs);
   }
 
-  /* ===== Atajos teclado ===== */
+  /* ===== Atajos teclado (Pantalla) ===== */
   const HOT = new Set(["Space","Escape","KeyF","KeyQ","Digit1","Digit2","ArrowRight","ArrowLeft","ArrowUp","ArrowDown"]);
   function nextSlide(){ if(!photos.length) return; idx=(idx+1)%photos.length; showSlide(); }
   function prevSlide(){ if(!photos.length) return; idx=(idx-1+photos.length)%photos.length; showSlide(); }
@@ -681,54 +732,33 @@ function applyStaticDecor(kind, accent='#d4af37'){
     if(e.code==="Space"){ isPaused=!isPaused; if(isPaused){ clearTimer(); toast("Pausa ⏸"); } else { resetSlideshow(true); toast("Play ▶️"); } return; }
     if(e.code==="Escape"){
       if($("#qrModal").classList.contains("show")){ $("#qrClose").click(); return; }
-      if(isFullscreen() && dragMode){ stopDragMode(true); return; } /* salir edición si estaba activa */
+      if(isFullscreen() && dragMode){ stopDragMode(true); return; }
       if(isFullscreen()){ exitFullscreen(); return; }
       return;
     }
-    if(e.code==="KeyF"){ if(isFullscreen()) exitFullscreen(); else enterFullscreen($("#viewer")); return; }
+    if(e.code==="KeyF"){ if(isFullscreen()) exitFullscreen(); else enterFullscreen($("#viewer-main")); return; }
     if(e.code==="KeyQ"){ $("#genQR").click(); return; }
     if(e.code==="Digit1"){ document.querySelector('[data-tab="pantalla"]')?.click(); return; }
     if(e.code==="Digit2"){ document.querySelector('[data-tab="ajustes"]')?.click(); return; }
 
     if(e.code==="ArrowRight"){ nextSlide(); if(!isPaused){ isPaused=true; toast("Pausa ⏸ (→)"); } return; }
     if(e.code==="ArrowLeft"){ prevSlide(); if(!isPaused){ isPaused=true; toast("Pausa ⏸ (←)"); } return; }
-
-    if(e.shiftKey && (e.code==="ArrowUp"||e.code==="ArrowDown")){
-      const cur = Number($("#titleOffset").value)||0;
-      const delta = (e.code==="ArrowUp"? -1 : 1);
-      const val = Math.max(-30, Math.min(30, cur+delta));
-      $("#titleOffset").value = val;
-      document.documentElement.style.setProperty('--title-y',val/100*120+'px');
-      API.updateSettings({titleOffsetPct:val});
-      return;
-    }
-    if(e.altKey && (e.code==="ArrowUp"||e.code==="ArrowDown")){
-      const cur = Number($("#qrOffset").value)||0;
-      const delta = (e.code==="ArrowUp"? -1 : 1);
-      const val = Math.max(-40, Math.min(40, cur+delta));
-      $("#qrOffset").value = val;
-      document.documentElement.style.setProperty('--qr-y',val/100*160+'px');
-      API.updateSettings({qrOffsetPct:val});
-      return;
-    }
   }, {capture:true, passive:false});
 
   /* ===== Reset visor ===== */
   $("#resetView").addEventListener("click",async()=>{
     await API.updateSettings({
       titleText:"¡Subí tu foto con el QR!",fontSizePx:44,
-      /* offsets a 0 */
       titleOffsetPct:0,qrOffsetPct:0,titleXOffsetPct:0,qrXOffsetPct:0,
-      /* colores (solo visor) */
       bgColor:"#000000",textColor:"#ffffff",accentColor:"#d4af37",
       theme:"fireworks",fxIntensity:70,qrAuto:true,qrPercent:58,
       textPosV:"center",textAlign:"center",staticTheme:"none"
     });
-    layoutOverlay(true);
+    layoutOverlay('main', true); layoutOverlay('prev', true);
     toast("Visor reseteado");
   });
 
-  /* ===== Subida demo local ===== */
+  /* ===== Subida por QR (misma sala) ===== */
   if(isUploadMode){
     $("#btnUpload").addEventListener("click",async()=>{
       const f=$("#upFile").files?.[0]; if(!f){toast("Elegí una foto");return;}
@@ -740,34 +770,30 @@ function applyStaticDecor(kind, accent='#d4af37'){
     });
   }
 
-  /* ======= EDICIÓN EN PANTALLA COMPLETA (ARRASTRAR) ======= */
-  let dragMode=false, dragTarget=null, dragStart=null, safeRect=null;
+  /* ===== Edición en pantalla completa (arrastrar, sobre visor grande) ===== */
+  let dragMode=false, dragTarget=null, dragStart=null, safeRect=null, startBase={x:0,y:0};
 
-  function pxFromPctX(pct){ return (pct/100)*160; }  // escala aprox para mapping visual
-  function pxFromPctY(pct){ return (pct/100)*120; }
-
-  function pctXFromPx(px){ return Math.max(-40, Math.min(40, (px/160)*100)); }
-  function pctYFromPx(px){ return Math.max(-40, Math.min(40, (px/160)*100)); }
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 
   function startDragMode(){
     dragMode=true;
     $("#editExit").disabled=false;
-    $("#viewer").classList.add("drag-mode");
+    $("#viewer-main").classList.add("drag-mode");
     $("#dragHint").classList.remove("hidden");
-    enterFullscreen($("#viewer"));
-    safeRect = $(".safePad").getBoundingClientRect();
-    bindDrag("#titlesGroup");
-    bindDrag("#qrCenter");
+    enterFullscreen($("#viewer-main"));
+    safeRect = $("#viewer-main .safePad").getBoundingClientRect();
+    bindDrag("#titles-main");
+    bindDrag("#qr-main");
   }
   function stopDragMode(save=false){
     dragMode=false; dragTarget=null; dragStart=null; safeRect=null;
-    $("#viewer").classList.remove("drag-mode");
+    $("#viewer-main").classList.remove("drag-mode");
     $("#dragHint").classList.add("hidden");
     $("#editExit").disabled=true;
     if(isFullscreen()) exitFullscreen();
     if(save) toast("Posiciones guardadas ✅");
-    unbindDrag("#titlesGroup");
-    unbindDrag("#qrCenter");
+    unbindDrag("#titles-main");
+    unbindDrag("#qr-main");
   }
 
   $("#editFull").addEventListener("click",()=>{ if(!dragMode) startDragMode(); });
@@ -789,10 +815,11 @@ function applyStaticDecor(kind, accent='#d4af37'){
   function onDown(e){
     if(!dragMode) return;
     dragTarget = e.currentTarget;
-    const st = getComputedStyle(document.documentElement);
-    const baseX = dragTarget.id==="titlesGroup" ? parseFloat(st.getPropertyValue('--title-x'))||0 : parseFloat(st.getPropertyValue('--qr-x'))||0;
-    const baseY = dragTarget.id==="titlesGroup" ? parseFloat(st.getPropertyValue('--title-y'))||0 : parseFloat(st.getPropertyValue('--qr-y'))||0;
-    dragStart = {x:e.clientX, y:e.clientY, baseX, baseY};
+    const st = window.getComputedStyle(dragTarget);
+    const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(st.transform);
+    startBase.x = m ? parseFloat(m[1]) : 0;
+    startBase.y = m ? parseFloat(m[2]) : 0;
+    dragStart = {x:e.clientX, y:e.clientY};
     window.addEventListener("pointermove",onMove);
     window.addEventListener("pointerup",onUp);
   }
@@ -800,50 +827,51 @@ function applyStaticDecor(kind, accent='#d4af37'){
     if(!dragMode || !dragTarget || !dragStart) return;
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
-    let nx = dragStart.baseX + dx;
-    let ny = dragStart.baseY + dy;
+    let nx = startBase.x + dx;
+    let ny = startBase.y + dy;
 
-    /* Limitar dentro de la safePad aprox */
     const pad = 24;
-    const r = safeRect;
-    const maxX = (r.width/2) - pad;
-    const maxY = (r.height/2) - pad;
-    nx = Math.max(-maxX, Math.min(maxX, nx));
-    ny = Math.max(-maxY, Math.min(maxY, ny));
+    const maxX = (safeRect.width/2) - pad;
+    const maxY = (safeRect.height/2) - pad;
+    nx = clamp(nx, -maxX, maxX);
+    ny = clamp(ny, -maxY, maxY);
 
-    if(dragTarget.id==="titlesGroup"){
-      document.documentElement.style.setProperty('--title-x', nx+'px');
-      document.documentElement.style.setProperty('--title-y', ny+'px');
-    }else{
-      document.documentElement.style.setProperty('--qr-x', nx+'px');
-      document.documentElement.style.setProperty('--qr-y', ny+'px');
-    }
+    dragTarget.style.transform = `translate(${nx}px, ${ny}px)`;
   }
   function onUp(){
     if(!dragMode || !dragTarget) return;
-    const st = getComputedStyle(document.documentElement);
-    if(dragTarget.id==="titlesGroup"){
-      const xpx = parseFloat(st.getPropertyValue('--title-x'))||0;
-      const ypx = parseFloat(st.getPropertyValue('--title-y'))||0;
-      const titleXOffsetPct = pctXFromPx(xpx);
-      const titleOffsetPct  = pctYFromPx(ypx); /* mantiene compat vertical */
-      $("#titleOffsetX").value = Math.round(titleXOffsetPct);
-      $("#titleOffset").value  = Math.round(titleOffsetPct);
-      API.updateSettings({titleXOffsetPct, titleOffsetPct});
-    }else{
-      const xpx = parseFloat(st.getPropertyValue('--qr-x'))||0;
-      const ypx = parseFloat(st.getPropertyValue('--qr-y'))||0;
-      const qrXOffsetPct = pctXFromPx(xpx);
-      const qrOffsetPct  = pctYFromPx(ypx);
-      $("#qrOffsetX").value = Math.round(qrXOffsetPct);
-      $("#qrOffset").value  = Math.round(qrOffsetPct);
-      API.updateSettings({qrXOffsetPct, qrOffsetPct});
-    }
+
+    // convertir a % relativo al área segura y guardar en settings
+    const st = window.getComputedStyle(dragTarget);
+    const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(st.transform);
+    const px = m ? parseFloat(m[1]) : 0;
+    const py = m ? parseFloat(m[2]) : 0;
+
+    const toPctX = (px/(safeRect.width/2))*100;
+    const toPctY = (py/(safeRect.height/2))*100;
+
+    API.getSettings().then(s=>{
+      if(dragTarget.id.includes('titles')){
+        const titleXOffsetPct = clamp(Math.round(toPctX), -120, 120);
+        const titleOffsetPct  = clamp(Math.round(toPctY), -120, 120);
+        $("#titleOffsetX").value = titleXOffsetPct;
+        $("#titleOffset").value  = titleOffsetPct;
+        API.updateSettings({titleXOffsetPct, titleOffsetPct});
+      }else{
+        const qrXOffsetPct = clamp(Math.round(toPctX), -120, 120);
+        const qrOffsetPct  = clamp(Math.round(toPctY), -120, 120);
+        $("#qrOffsetX").value = qrXOffsetPct;
+        $("#qrOffset").value  = qrOffsetPct;
+        API.updateSettings({qrXOffsetPct, qrOffsetPct});
+      }
+    });
+
     dragTarget=null; dragStart=null;
   }
 
   /* Primera disposición */
-  layoutOverlay(true);
+  layoutOverlay('main', true);
+  layoutOverlay('prev', true);
 })();
 </script>
 </body>
