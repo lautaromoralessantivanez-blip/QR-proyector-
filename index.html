@@ -287,16 +287,16 @@ button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rg
     </div>
   </section>
 
-  <!-- SUBIR desde QR (misma sala) -->
+  <!-- SUBIR desde QR (solo fotos; sala fijada) -->
   <section id="upload" class="hidden">
     <div class="card" style="max-width:520px;margin:24px auto">
       <div class="row" style="justify-content:space-between">
         <div class="tag">Subir foto — <strong id="uploadRoom"></strong></div>
         <div class="small" id="roomLabel"></div>
       </div>
-      <div class="row"><label>Tu nombre (opcional)</label><input id="upName" type="text" placeholder="Ej: Ana / Invitado"/></div>
       <div class="row"><label>Foto</label><input id="upFile" type="file" accept="image/*,.svg,.webp,.avif,.gif"/></div>
       <div class="row" style="justify-content:flex-end"><button id="btnUpload" type="button">Subir</button></div>
+      <div class="small" style="margin-top:8px;opacity:.8">Este enlace queda pegado a tu sala para que TODAS las fotos vayan al mismo lugar.</div>
     </div>
   </section>
 </main>
@@ -321,6 +321,7 @@ button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rg
 const $ = (s)=>document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const isUploadMode = location.hash.replace('#','') === 'subir';
+const FIRST_ROOM_KEY = 'qrwall:first-room';   // fija la primera sala escaneada para envíos
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);} }
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800);}
 
@@ -426,7 +427,7 @@ class FXEngine{
   loop(t){this.ensureSize();if(!this.last) this.last=t;const dt=Math.min(0.05,(t-this.last)/1000);this.last=t;
     if(this.running){switch(this.theme){case'confetti':this.stepConfetti(dt);break;case'fireworks':this.stepFireworks(dt);break;case'neon':this.stepNeon(dt);break;case'luces':this.stepBokeh(dt);break;}}
     requestAnimationFrame(tt=>this.loop(tt));}
-  /* (motores: confetti / fireworks / neon / luces) — omitidos aquí por brevedad, son iguales a tu versión ya funcional */
+  /* (motores: confetti / fireworks / neon / luces) */
   stepConfetti(dt){const{ctx,w,h}=this;const cap=240*this.intensity+40;if(this.items.length<cap||Math.random()<0.02*this.intensity)this.spawnConfetti();
     ctx.clearRect(0,0,w,h);const wind=Math.sin(performance.now()/1500)*45;const next=[];
     for(const p of this.items){p.vy+=40*dt;p.vx+=wind*dt*0.6;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
@@ -533,8 +534,22 @@ function layoutOverlay(where, redrawQR=false){
 let API, fxMain, fxPrev;
 
 (async function(){
+  // Sala desde URL
   let roomId = params.get("r") || "";
-  if(!roomId){roomId=(Math.random().toString(36).slice(2,8)).toUpperCase();const url=new URL(location.href);url.searchParams.set("r",roomId);history.replaceState({}, "", url.toString());}
+
+  // En modo SUBIR: fijar primera sala escaneada y reutilizarla siempre
+  if (isUploadMode) {
+    const locked = localStorage.getItem(FIRST_ROOM_KEY);
+    if (!locked && roomId) localStorage.setItem(FIRST_ROOM_KEY, roomId);
+    roomId = localStorage.getItem(FIRST_ROOM_KEY) || roomId;
+  }
+
+  // Si no hay sala aún (pantalla/ajustes), generar una nueva
+  if(!roomId){
+    roomId=(Math.random().toString(36).slice(2,8)).toUpperCase();
+    const url=new URL(location.href);url.searchParams.set("r",roomId);history.replaceState({}, "", url.toString());
+  }
+
   $("#roomId").textContent=roomId; $("#roomIdSide").textContent=roomId; $("#uploadRoom").textContent=roomId;
 
   function switchTab(tab){
@@ -629,7 +644,7 @@ let API, fxMain, fxPrev;
   /* ===== Controles (Ajustes) ===== */
   $("#titleText").addEventListener("input",debounce(e=>{API.updateSettings({titleText:e.target.value});},120));
   $("#fontSize").addEventListener("input",e=>{const v=Number(e.target.value)||44;API.updateSettings({fontSizePx:v});});
-  // Actualizamos solo el estado; el cálculo se hace por visor con applyPositions/layoutOverlay
+  // Estado -> render por visor
   $("#titleOffset").addEventListener("input",e=>{API.updateSettings({titleOffsetPct:Number(e.target.value)||0});});
   $("#qrOffset").addEventListener("input",e=>{API.updateSettings({qrOffsetPct:Number(e.target.value)||0});});
   $("#titleOffsetX").addEventListener("input",e=>{API.updateSettings({titleXOffsetPct:Number(e.target.value)||0});});
@@ -762,11 +777,11 @@ let API, fxMain, fxPrev;
   if(isUploadMode){
     $("#btnUpload").addEventListener("click",async()=>{
       const f=$("#upFile").files?.[0]; if(!f){toast("Elegí una foto");return;}
-      const name=$("#upName").value||"Invitado";
       const url=URL.createObjectURL(f);
-      await API.addPhoto({url,name});
+      await API.addPhoto({url,name:"Invitado"});
+      $("#upFile").value = ""; // limpiar input
       toast("Foto subida ✅");
-      setTimeout(()=>{location.href=location.href.replace(/#subir$/,'');},700);
+      // sin redirección; se queda en la pantalla de subir
     });
   }
 
