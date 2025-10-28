@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Pantalla con QR — Edición con manijas + Subtítulo independiente</title>
+<title>Pantalla con QR — Edición + Subida remota</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
 
@@ -75,6 +75,14 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 /* Toast */
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* --- Vista SOLO SUBIDA (cuando se abre con #subir) --- */
+.up-only header,.up-only #pantalla,.up-only #ajustes{display:none!important}
+.up-only main{max-width:520px;padding:24px 16px}
+.up-only .card{border-radius:18px}
+.up-only .hero{display:grid;gap:8px;justify-items:center;text-align:center;margin-bottom:10px}
+.up-only h1{font-size:22px}
+.up-only .note{font-size:12px;color:#cbd5e1}
 </style>
 </head>
 <body>
@@ -203,13 +211,18 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 
   <!-- ===== SUBIR (desde QR) ===== -->
   <section id="upload" class="hidden">
-    <div class="card" style="max-width:520px;margin:24px auto">
-      <div class="row" style="justify-content:space-between;margin-top:0;display:flex">
-        <div class="badge">Subir a sala <strong id="roomUp">—</strong></div>
-        <div class="small">Elegí una imagen y subila</div>
+    <div class="card">
+      <div class="hero">
+        <h1>Subí tu foto 📤</h1>
+        <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
       </div>
-      <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:120px">Archivo</label><input id="fileUp" type="file" accept="image/*,.svg,.webp,.avif,.gif"></div>
-      <div class="row" style="justify-content:flex-end;display:flex"><button id="btnUp" class="btn" type="button">Subir</button></div>
+      <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
+        <label style="min-width:120px">Archivo</label>
+        <input id="fileUp" type="file" accept="image/*,.svg,.webp,.avif,.gif" capture="environment">
+      </div>
+      <div class="row" style="justify-content:flex-end;display:flex;margin-top:10px">
+        <button id="btnUp" class="btn" type="button">Subir</button>
+      </div>
     </div>
   </section>
 </main>
@@ -257,13 +270,23 @@ function switchTab(id){
 }
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
 
-/* ===== Sala / colecciones ===== */
+/* ===== Sala / modo subida ===== */
 const params = new URLSearchParams(location.search);
 const uploadMode = (location.hash === "#subir");
 let room = params.get("r") || localStorage.getItem("qr:sala") || (Math.random().toString(36).slice(2,8)).toUpperCase();
 localStorage.setItem("qr:sala", room);
+
+/* Si es modo subida, mostrar solo el panel de subida */
+if(uploadMode){
+  document.body.classList.add("up-only");
+  $("#upload").classList.remove("hidden");
+}else{
+  $("#pantalla").classList.remove("hidden");
+}
+
 $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
 
+/* ===== Firebase init y refs ===== */
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const st  = getStorage(app);
@@ -275,16 +298,17 @@ function layoutQR(box, viewer, scale=1){
   const pct = Math.min(80,Math.max(20, Number($("#qrPct").value||58)));
   const side = Math.floor(Math.min(viewer.clientWidth,viewer.clientHeight) * pct / 100 * scale);
   box.style.width = side+"px"; box.style.height = side+"px";
-  const url=new URL(location.href); url.hash="#subir";
+  const url=new URL(location.href);
+  url.searchParams.set("r", room); // ← asegura misma sala
+  url.hash="#subir";               // ← vista solo subida
   box.innerHTML=""; box.appendChild(qrImg(url.toString(), side));
 }
 
-/* ===== FX (simple) ===== */
+/* ===== FX (placeholder) ===== */
 class FX{
-  constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); this.theme='fireworks'; this.int=0.7; this.w=0; this.h=0; this.rockets=[]; this.parts=[]; new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
-  set(theme,intensity){ this.theme=theme; this.int=Math.max(0,Math.min(1,intensity)); this.rockets=[]; this.parts=[]; }
-  resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0); this.w=r.width; this.h=r.height; }
-  loop(){ const {ctx,w,h}=this; ctx.clearRect(0,0,w,h); requestAnimationFrame(()=>this.loop()); }
+  constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
+  resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0);}
+  loop(){ const {ctx}=this; ctx.clearRect(0,0,this.cv.width,this.cv.height); requestAnimationFrame(()=>this.loop()); }
 }
 const fxMain = new FX($("#fxMain"), $("#viewer"));
 const fxPrev = new FX($("#fxPrev"), $("#viewerPrev"));
@@ -299,7 +323,7 @@ const S = Object.assign({
   qrOffX:0, qrOffY:0, qrScale:100,
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
   fxTheme:"fireworks", fxPower:70,
-  arts:[] // art: {id,url,pos,sizeVH,offX,offY,alpha,scale}
+  arts:[]
 }, DEFAULTS);
 let T = null;
 function persist(){ localStorage.setItem("qr:settings", JSON.stringify(S)); }
@@ -318,10 +342,7 @@ function applyTheme(){
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id).addEventListener("input",applyTheme));
 
 /* Logo */
-$("#logoFile").addEventListener("change",(ev)=>{
-  const f=ev.target.files?.[0]; if(!f) return;
-  ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado");
-});
+$("#logoFile").addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; if(!f) return; ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado"); });
 ["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{
   const el=$("#"+id); if(!el) return;
   el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
@@ -401,12 +422,7 @@ function getOffsets(key){
 
 function bindSelectables(on){
   const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),...$("#artsMain").querySelectorAll(".art")];
-  els.forEach(el=>{
-    if(!el) return;
-    el.style.pointerEvents = on ? "auto" : "none";
-    if(on){ el.addEventListener("pointerdown", onDown); }
-    else  { el.removeEventListener("pointerdown", onDown); }
-  });
+  els.forEach(el=>{ if(!el) return; el.style.pointerEvents = on ? "auto" : "none"; if(on){ el.addEventListener("pointerdown", onDown); } else { el.removeEventListener("pointerdown", onDown); }});
 }
 
 function onDown(e){
@@ -478,10 +494,9 @@ bbox.querySelectorAll(".handle").forEach(h=>{
   h.addEventListener("pointerdown",(e)=>{
     if(!edit) return;
     e.stopPropagation(); e.preventDefault();
-    // SIEMPRE redimensionamos el elemento actualmente seleccionado
     const target = selectedEl;
     if(!target) return;
-    dragEl = target; // asegurar contexto correcto
+    dragEl = target;
     const k=getKey(dragEl); const st=getOffsets(k);
     startScale=st.sc||100;
     startWH={w:dragEl.getBoundingClientRect().width, h:dragEl.getBoundingClientRect().height};
@@ -499,13 +514,11 @@ function onResizeMove(e){
   const relX = (resizeDir.includes("e")? dx : resizeDir.includes("w")? -dx : 0) / Math.max(40,startWH.w);
   const relY = (resizeDir.includes("s")? dy : resizeDir.includes("n")? -dy : 0) / Math.max(40,startWH.h);
   const rel  = (Math.abs(relX)>Math.abs(relY)? relX : relY);
-  let newScale = Math.max(10, Math.min(400, Math.round((startScale*(1+rel))*1))); // 10%..400%
-  // mantener translate actual
+  let newScale = Math.max(10, Math.min(400, Math.round((startScale*(1+rel))*1)));
   const tr = /translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform) || [0,0,0];
   const tx=parseFloat(tr[1]||0), ty=parseFloat(tr[2]||0);
   dragEl.style.transform=`translate(${tx}%, ${ty}%) scale(${newScale/100})`;
   positionBBox(dragEl);
-  // guardar (temporal) en T
   const k=getKey(dragEl); const st=getOffsets(k);
   st.set(st.x, st.y, newScale);
 }
@@ -532,30 +545,21 @@ function setEdit(on){
   }
 }
 $("#btnEdit").addEventListener("click",()=>setEdit(true));
-$("#btnSave").addEventListener("click",()=>{
-  if(T){ Object.assign(S, T); persist(); T=null; }
-  setEdit(false); toast("Cambios guardados ✅");
-});
+$("#btnSave").addEventListener("click",()=>{ if(T){ Object.assign(S, T); persist(); T=null; } setEdit(false); toast("Cambios guardados ✅"); });
 
 /* ===== Fotos ===== */
 let photos=[], idx=0, timer=null, paused=false;
 onSnapshot(query(colPhotos, orderBy("createdAt","asc")), (snap)=>{
   photos=[]; snap.forEach(d=>photos.push(d.data()));
   $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
-  paintRail(); restartShow();
+  const r=$("#rail"); r.innerHTML=""; photos.forEach((p)=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; r.appendChild(im); });
+  const ph=$("#photo"), box=$("#qrBox");
+  if(!photos.length){ ph.style.display="none"; box.parentElement.style.display="grid"; }
+  else{ const last=photos[photos.length-1].url; ph.src=last; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; }; }
 });
-function paintRail(){ const r=$("#rail"); r.innerHTML=""; photos.forEach((p,i)=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; im.addEventListener("click",()=>{idx=i;showSlide(); paused=true; toast("Pausa ⏸");}); r.appendChild(im); }); }
-function showSlide(){
-  const ph=$("#photo"), ph2=$("#photoPrev"), box=$("#qrBox"), box2=$("#qrPrev");
-  if(!photos.length){ ph.style.display="none"; ph2.style.display="none"; box.parentElement.style.display="grid"; box2.parentElement.style.display="grid"; layoutAll(); return; }
-  const url=photos[idx%photos.length].url; ph.src=url; ph2.src=url; ph.onload=()=>{ ph.style.display="block";}; ph2.onload=()=>{ ph2.style.display="block";};
-  box.parentElement.style.display="none"; box2.parentElement.style.display="none";
-}
-function clearTimer(){ if(timer){ clearInterval(timer); timer=null; } }
-function restartShow(){ clearTimer(); idx=0; showSlide(); if(!photos.length||paused) return; timer=setInterval(()=>{ if(!photos.length){clearTimer();return;} idx++; if(idx>=photos.length){ clearTimer(); $("#qrBox").parentElement.style.display="grid"; $("#qrPrev").parentElement.style.display="grid"; layoutAll(); } else showSlide(); },5000); }
 
 /* ===== Subir desde #subir ===== */
-if(uploadMode){
+if(location.hash === "#subir"){
   $("#btnUp").addEventListener("click", async ()=>{
     const f=$("#fileUp").files?.[0]; if(!f){ toast("Elegí una imagen"); return; }
     try{
@@ -568,11 +572,18 @@ if(uploadMode){
 
 /* ===== Modal QR / Fullscreen / Atajos ===== */
 const modal=$("#qrModal"), stage=$("#qrStage"), qrBig=$("#qrBig");
-function openQR(){ modal.style.display="block"; const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66); const url=new URL(location.href); url.hash="#subir"; qrBig.innerHTML=""; qrBig.appendChild(qrImg(url.toString(), s)); stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—"; }
+function openQR(){ if(location.hash==="#subir") return;
+  modal.style.display="block";
+  const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66);
+  const url=new URL(location.href); url.searchParams.set("r",room); url.hash="#subir";
+  qrBig.innerHTML=""; qrBig.appendChild(qrImg(url.toString(), s));
+  stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—";
+}
 function closeQR(){ modal.style.display="none"; if(isFS()) exitFS(); }
-$("#btnQR").addEventListener("click", openQR); $("#btnQRModal").addEventListener("click", openQR);
-modal.addEventListener("click",(e)=>{ if(e.target===modal) closeQR(); });
-$("#btnFull").addEventListener("click", ()=>{ if(isFS()) exitFS(); else enterFS($("#viewer")); });
+$("#btnQR")?.addEventListener("click", openQR);
+$("#btnQRModal")?.addEventListener("click", openQR);
+modal?.addEventListener("click",(e)=>{ if(e.target===modal) closeQR(); });
+$("#btnFull")?.addEventListener("click", ()=>{ if(isFS()) exitFS(); else enterFS($("#viewer")); });
 
 document.addEventListener("keydown",(e)=>{
   if(["KeyF","KeyQ","Escape","KeyE"].includes(e.code)) e.preventDefault();
