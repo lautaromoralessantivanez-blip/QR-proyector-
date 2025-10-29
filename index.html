@@ -3,10 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Pantalla con QR — Edición + Subida remota (sin Storage)</title>
-
+<title>Pantalla con QR — Edición + Subida remota (no persistente)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-
 <style>
 :root{ --bg:#000; --text:#fff; --title-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
 *{box-sizing:border-box}
@@ -27,7 +25,15 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 .viewer{width:100%;aspect-ratio:16/9;background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:16px;position:relative;overflow:hidden}
 .viewer:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;border:none}
 .cvfx{position:absolute;inset:0;z-index:1;pointer-events:none}
-.layer-arts,.layer-center{position:absolute;inset:0;z-index:2}
+
+/* Capas */
+.layer-center{position:absolute;inset:0;z-index:2}
+.layer-arts{position:absolute;inset:0;z-index:3}
+/* en edición, el centro no intercepta el click; se editan marco/arts/qr/logo/títulos */
+.select-mode .layer-center{pointer-events:none}
+.select-mode .layer-arts{pointer-events:auto}
+
+/* Safe + centro */
 .safe{position:absolute;inset:18px;display:grid;place-items:center}
 .center{display:grid;gap:10px;justify-items:center;text-align:center;width:100%}
 h1{font-family:var(--title-font);font-weight:900;margin:0;line-height:1.05;color:var(--text);font-size:clamp(22px,3.6vw,44px)}
@@ -37,12 +43,11 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .logo{max-width:none;max-height:none;object-fit:contain;display:none}
 .art{position:absolute;object-fit:contain}
 
-/* Marco cuadrado para la foto (editable) */
-.frame{position:absolute;display:none; /* visible solo cuando hay foto */
-  background:#000; border:2px solid rgba(255,255,255,.18); border-radius:14px;
-  overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.5); z-index:0;
-}
+/* Marco de la foto (editable) */
+.frame{position:absolute;background:#000;border:2px solid rgba(255,255,255,.18);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:4;display:none}
 .frame img{width:100%;height:100%;object-fit:cover;display:block}
+/* placeholder visible en edición aunque no haya foto */
+.select-mode #frame{display:block;border-style:dashed;background:transparent}
 
 /* Controles flotantes */
 .ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:6}
@@ -51,13 +56,12 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 
 /* Modo edición */
 .select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode #logo,.select-mode .art,.select-mode #frame{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
-#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;
-  padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
+#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
 .select-mode #editChip{display:block}
 #editHint{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;z-index:7;font-size:12px}
 .small{font-size:12px;color:#cbd5e1}
 
-/* Bounding Box tipo Canva */
+/* Bounding Box */
 #bbox{position:absolute;z-index:9;border:2px solid #8b5cf6;border-radius:6px;display:none;pointer-events:none}
 .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #8b5cf6;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:auto;cursor:nwse-resize}
 .handle.n{top:-8px;left:50%;transform:translate(-50%,0);cursor:ns-resize}
@@ -78,26 +82,19 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 #viewerPrev{max-width:340px}
 #viewerPrev .layer-center{transform:scale(.7);transform-origin:center}
 
-/* Toast */
+/* Toast + chooser + up-only */
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* Chooser mini modal */
 #chooser{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;z-index:70;align-items:center;justify-content:center}
 #chooser .box{background:#0f172a;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px;min-width:280px}
-#chooser .box h3{margin:0 0 6px 0;font-size:16px}
 #chooser .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 #chooser .box .btn{background:#fff}
-
-/* --- Vista SOLO SUBIDA (cuando se abre con #subir) --- */
 .up-only header,.up-only #pantalla,.up-only #ajustes{display:none!important}
 .up-only main{max-width:520px;padding:24px 16px}
 .up-only .card{border-radius:18px}
 .up-only .hero{display:grid;gap:8px;justify-items:center;text-align:center;margin-bottom:10px}
 .up-only h1{font-size:22px}
 .up-only .note{font-size:12px;color:#cbd5e1}
-.fileline{display:flex;align-items:center;gap:10px}
-.filehint{font-size:12px;color:#aab3c5}
 
 .warn{background:#3b0f0f;border:1px solid #ef4444;color:#fecaca;padding:8px 12px;border-radius:10px;margin-bottom:10px}
 .disabled{opacity:.5;pointer-events:none}
@@ -119,10 +116,11 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   <section id="pantalla" class="pane">
     <div class="card">
       <div id="fbWarn" class="warn hidden">⚠️ No conectado a Firestore o permisos denegados. Revisá Auth anónimo y reglas.</div>
+
       <div class="viewer" id="viewer">
         <canvas id="fxMain" class="cvfx"></canvas>
 
-        <!-- Marco cuadrado editable donde se muestra la foto -->
+        <!-- Marco cuadrado editable (contiene la foto) -->
         <div id="frame" class="frame">
           <img id="photo" alt="">
         </div>
@@ -153,14 +151,9 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 
         <!-- Bounding box + 8 manijas -->
         <div id="bbox">
-          <div class="handle nw" data-dir="nw"></div>
-          <div class="handle n"  data-dir="n"></div>
-          <div class="handle ne" data-dir="ne"></div>
-          <div class="handle e"  data-dir="e"></div>
-          <div class="handle se" data-dir="se"></div>
-          <div class="handle s"  data-dir="s"></div>
-          <div class="handle sw" data-dir="sw"></div>
-          <div class="handle w"  data-dir="w"></div>
+          <div class="handle nw" data-dir="nw"></div><div class="handle n" data-dir="n"></div><div class="handle ne" data-dir="ne"></div>
+          <div class="handle e" data-dir="e"></div><div class="handle se" data-dir="se"></div><div class="handle s" data-dir="s"></div>
+          <div class="handle sw" data-dir="sw"></div><div class="handle w" data-dir="w"></div>
         </div>
       </div>
 
@@ -188,9 +181,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="small">Previsualización</div>
           <div class="viewer" id="viewerPrev" style="aspect-ratio:16/9">
             <canvas id="fxPrev" class="cvfx"></canvas>
-
             <div id="framePrev" class="frame" style="display:block;"></div>
-
             <div class="layer-arts" id="artsPrev"></div>
             <div class="safe">
               <div class="layer-center">
@@ -221,7 +212,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Tamaño QR (%)</label><input id="qrPct" type="number" min="20" max="80" value="58"></div>
 
           <hr style="border-color:rgba(255,255,255,.12)">
-          <!-- LOGO con chooser -->
+          <!-- LOGO -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Logo</label>
             <div class="fileline">
@@ -240,7 +231,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <select id="logoBlend"><option value="normal" selected>Normal</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="lighten">Lighten</option><option value="darken">Darken</option></select>
           </div>
 
-          <!-- SUBIR ARTÍCULO con chooser -->
+          <!-- SUBIR ARTÍCULO -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Subir artículo</label>
@@ -252,16 +243,15 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <input id="artCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
             <input id="artGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
-          <div class="small">El artículo se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
+          <div class="small">El artículo se edita en “Editar (E)” como el QR.</div>
 
-          <!-- DURACIÓN SLIDESHOW -->
+          <!-- DURACIÓN -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Duración por foto (seg)</label>
             <input id="durSec" type="number" min="1" max="60" value="5">
           </div>
-          <div class="small">Cada foto aparece una sola vez. Al terminar, vuelve el QR.</div>
-
+          <div class="small">Cada foto se muestra una sola vez. Al terminar, vuelve el QR.</div>
         </div>
       </div>
     </div>
@@ -275,7 +265,6 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
         <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
       </div>
 
-      <!-- Elegir archivo (con chooser) -->
       <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
         <label style="min-width:120px">Archivo</label>
         <div class="fileline">
@@ -306,7 +295,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   </div>
 </div>
 
-<!-- Mini chooser Cámara/Galería reutilizable -->
+<!-- Mini chooser Cámara/Galería -->
 <div id="chooser">
   <div class="box">
     <h3>¿De dónde tomamos la imagen?</h3>
@@ -319,12 +308,12 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 </div>
 
 <script type="module">
-/* =================== UTILIDADES BÁSICAS =================== */
+/* ========== Utilidades ========== */
 const $ = (s)=>document.querySelector(s);
 const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
 const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
 
-/* Chooser genérico (cámara o galería) */
+/* Chooser */
 let chooserResolve = null;
 function openChooser(){ return new Promise((res)=>{ chooserResolve=res; $("#chooser").style.display="flex"; }); }
 function closeChooser(){ $("#chooser").style.display="none"; chooserResolve=null; }
@@ -351,7 +340,7 @@ if(uploadMode){ document.body.classList.add("up-only"); $("#upload").classList.r
 else{ $("#pantalla").classList.remove("hidden"); }
 $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
 
-/* QR visible siempre */
+/* QR */
 function buildUploadURL(){ const url=new URL(location.href); url.searchParams.set("r", room); url.hash="#subir"; return url.toString(); }
 function qrImg(url, size){ const i=new Image(); i.alt="QR"; i.src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=0&data=${encodeURIComponent(url)}`; i.style.width="100%"; i.style.height="100%"; i.style.imageRendering="pixelated"; return i; }
 function layoutQR(box, viewer, scale=1){
@@ -370,7 +359,7 @@ class FX{
 new FX($("#fxMain"), $("#viewer"));
 new FX($("#fxPrev"), $("#viewerPrev"));
 
-/* ======== ESTADO Y AJUSTES ======== */
+/* ===== Estado / ajustes ===== */
 const DEFAULTS = JSON.parse(localStorage.getItem("qr:settings") || "{}");
 const S = Object.assign({
   title:"¡Subí tu foto con el QR!", subText:"Escaneá y subí 📲", font:"Poppins",
@@ -380,13 +369,11 @@ const S = Object.assign({
   qrOffX:0, qrOffY:0, qrScale:100,
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
   arts:[],
-  /* Marco de foto (base ~ tamaño del recuadro rojo) */
   frameBasePct:60, frameOffX:0, frameOffY:0, frameScale:100,
   durationSec: 5
 }, DEFAULTS);
 let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
-/* Inputs de tema */
 function applyTheme(){
   document.documentElement.style.setProperty('--bg', $("#bg")?.value || S.bg);
   document.documentElement.style.setProperty('--text', $("#tx")?.value || S.text);
@@ -400,11 +387,11 @@ function applyTheme(){
   if($("#qrPct"))    s.qrPct=Number($("#qrPct").value||58);
   if($("#durSec"))   s.durationSec=Math.max(1, Number($("#durSec").value||5));
   layoutAll();
-  if(slideActive) { resetSlideshow(); }
+  if(slideActive) resetSlideshow();
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* Pickers con chooser (Logo / Artículo / Upload) */
+/* Pickers */
 async function openChooserFor(hiddenCam, hiddenGal){
   const sel = await openChooser();
   if(sel==="cam") hiddenCam.click();
@@ -421,7 +408,7 @@ $("#logoGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!
   el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
 });
 
-/* ARTÍCULO */
+/* Artículos */
 $("#btnPickArt")?.addEventListener("click", ()=>openChooserFor($("#artCam"), $("#artGal")));
 $("#artCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
 $("#artGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
@@ -439,7 +426,7 @@ $("#btnArtUpload")?.addEventListener("click", ()=>{
   toast("Artículo subido ✅");
 });
 
-/* Layout general */
+/* Layout helpers */
 function placeByPos(el,pos){
   const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
   if(pos==="top-left"){el.style.top=m;el.style.left=m}
@@ -449,6 +436,7 @@ function placeByPos(el,pos){
   else {el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%)";}
 }
 function setTS(el, xPct, yPct, scale){ el.style.transformOrigin="center center"; el.style.transform=`translate(${xPct}%, ${yPct}%) scale(${(scale||100)/100})`; }
+
 function layoutFrame(where){
   const s=ST();
   const viewer = where==="main" ? $("#viewer") : $("#viewerPrev");
@@ -456,11 +444,10 @@ function layoutFrame(where){
   if(!viewer || !frame) return;
   const SCALE  = (where==="prev") ? .7 : 1;
   const side = Math.floor(Math.min(viewer.clientWidth, viewer.clientHeight) * (s.frameBasePct||60) / 100 * SCALE);
-  frame.style.width = side+"px";
-  frame.style.height= side+"px";
-  // posicionamiento editable
+  frame.style.width = side+"px"; frame.style.height= side+"px";
   setTS(frame, s.frameOffX||0, s.frameOffY||0, (s.frameScale||100)*(where==="prev"?SCALE*100:100)/100);
 }
+
 function layoutViewer(where){
   const s = ST();
   const viewer = where==="main" ? $("#viewer") : $("#viewerPrev");
@@ -487,7 +474,6 @@ function layoutViewer(where){
   placeByPos(logo,s.logoPos||"center");
   setTS(logo, s.logoOffX||0, s.logoOffY||0, (s.logoScale||100)*(where==="prev"?SCALE*100:100)/100);
 
-  // articulos decorativos
   arts.innerHTML="";
   (s.arts||[]).forEach(a=>{
     const im=new Image(); im.src=a.url; im.className="art"; im.style.height=((a.sizeVH||18)*SCALE)+"vh"; im.style.opacity=(a.alpha||100)/100;
@@ -501,7 +487,7 @@ function layoutViewer(where){
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
 window.addEventListener("resize", layoutAll);
 
-/* ======== EDICIÓN con arrastre + BBox ======== */
+/* ===== Edición (drag + resize) ===== */
 let edit=false, dragging=false, dragEl=null, selectedEl=null, startX=0, startY=0, baseX=0, baseY=0;
 const bbox=$("#bbox");
 function getKey(el){
@@ -582,10 +568,8 @@ function showBBox(el){ bboxEl.style.display="block"; positionBBox(el); }
 function hideBBox(){ bboxEl.style.display="none"; }
 function positionBBox(el){
   const r=el.getBoundingClientRect(), host=$("#viewer").getBoundingClientRect();
-  bboxEl.style.left=(r.left-host.left)+"px";
-  bboxEl.style.top =(r.top -host.top )+"px";
-  bboxEl.style.width = r.width+"px";
-  bboxEl.style.height= r.height+"px";
+  bboxEl.style.left=(r.left-host.left)+"px"; bboxEl.style.top=(r.top-host.top)+"px";
+  bboxEl.style.width=r.width+"px"; bboxEl.style.height=r.height+"px";
 }
 bboxEl.querySelectorAll(".handle").forEach(h=>{
   h.addEventListener("pointerdown",(e)=>{
@@ -679,7 +663,7 @@ applyInitial();
 /* Reset */
 $("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
 
-/* =================== COMPRESIÓN A BASE64 (sin Storage) =================== */
+/* ===== COMPRESIÓN a Base64 ===== */
 async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   const bitmap = await createImageBitmap(file);
   const {width: w, height: h} = bitmap;
@@ -693,66 +677,42 @@ async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   const ctx = cv.getContext('2d');
   ctx.drawImage(bitmap, 0, 0, nw, nh);
   let q = quality, dataURL = cv.toDataURL('image/jpeg', q);
-  while (dataURL.length > 900*1024 && q > 0.5){
-    q -= 0.08;
-    dataURL = cv.toDataURL('image/jpeg', q);
-  }
+  while (dataURL.length > 900*1024 && q > 0.5){ q -= 0.08; dataURL = cv.toDataURL('image/jpeg', q); }
   return dataURL;
 }
 
-/* =============== SLIDESHOW (solo-una-vez) =============== */
-let shownIds = new Set();  // ids ya mostrados
-let queue    = [];         // cola de nuevas fotos sin mostrar (objetos {id, b64|url})
+/* ===== Slideshow no persistente ===== */
+let shownIds = new Set();     // ids ya mostrados (no repetir)
+let queue    = [];            // cola en esta sesión
 let slideIndex = 0;
 let slideTimer = null;
 let slideActive = false;
 
-function showCenter(on){
-  const center = $("#qrBox").parentElement;
-  center.style.display = on ? "grid" : "none";
-}
-function showFrame(on){
-  $("#frame").style.display = on ? "block" : "none";
-}
-function showPhoto(src){
-  const ph=$("#photo");
-  ph.src=src;
-  ph.onload=()=>{ showCenter(false); showFrame(true); };
-}
-function endShow(){
-  showFrame(false); showCenter(true);
-  slideActive=false; clearTimeout(slideTimer); slideTimer=null;
-}
+function showCenter(on){ $("#qrBox").parentElement.style.display = on ? "grid" : "none"; }
+function showFrame(on){ $("#frame").style.display = on ? "block" : "none"; }
+function showPhoto(src){ const ph=$("#photo"); ph.src=src; ph.onload=()=>{ showCenter(false); showFrame(true); }; }
+function endShow(){ showFrame(false); showCenter(true); slideActive=false; clearTimeout(slideTimer); slideTimer=null; }
 function runQueue(){
-  if(slideIndex >= queue.length){ // terminó esta tanda
-    queue = []; slideIndex = 0; endShow(); return;
-  }
+  if(slideIndex >= queue.length){ queue = []; slideIndex = 0; endShow(); return; }
   const p = queue[slideIndex];
   const src = p.b64 || p.url;
-  shownIds.add(p.id);          // marcar como vista
+  shownIds.add(p.id);
   showPhoto(src);
   const dur = Math.max(1, Number(ST().durationSec||5));
   clearTimeout(slideTimer);
-  slideTimer = setTimeout(()=>{ slideIndex++; runQueue(); }, dur*1000);
+  slideTimer = setTimeout(async ()=>{ await tryDelete(p.id); slideIndex++; runQueue(); }, dur*1000);
 }
-function startSlideshow(){
-  if(uploadMode) return;
-  if(!queue.length){ endShow(); return; }
-  slideActive=true; slideIndex=0; runQueue();
-}
-function resetSlideshow(){ // reinicia sobre la cola actual (sin repetir vistas)
-  clearTimeout(slideTimer); slideTimer=null; startSlideshow();
-}
+function startSlideshow(){ if(uploadMode) return; if(!queue.length){ endShow(); return; } slideActive=true; slideIndex=0; runQueue(); }
+function resetSlideshow(){ clearTimeout(slideTimer); slideTimer=null; startSlideshow(); }
 
-/* =================== FIREBASE (solo Firestore + Auth anónimo) =================== */
-let fb = { ok:false };
+/* ===== Firebase (para transportar, sin persistir) ===== */
+let fb = { ok:false, db:null, col:null, mods:null, toDelete:new Set() };
 async function initFirebase(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } =
-      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
-    const { getAuth, signInAnonymously, onAuthStateChanged } =
-      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+    const firestoreMods = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, doc, getDocs } = firestoreMods;
+    const { getAuth, signInAnonymously, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
 
     const firebaseConfig = {
       apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
@@ -768,34 +728,28 @@ async function initFirebase(){
     const db  = getFirestore(app);
     const auth = getAuth(app);
 
-    await new Promise((resolve)=>{
-      onAuthStateChanged(auth, (u)=>{ if(u) return resolve(); signInAnonymously(auth).finally(resolve); });
-    });
+    await new Promise((resolve)=>{ onAuthStateChanged(auth, (u)=>{ if(u) return resolve(); signInAnonymously(auth).finally(resolve); }); });
 
     const col = collection(db, `rooms/${room}/photos`);
-    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, col };
+    fb = { ok:true, db, col, mods: firestoreMods, addDoc, serverTimestamp, onSnapshot, query, orderBy, deleteDoc, doc, getDocs, toDelete:new Set() };
 
     $("#fbWarn").classList.add("hidden");
 
-    /* Escuchar fotos (con id) y alimentar cola sin repetir */
-    fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
+    /* Feed -> solo encola lo no visto */
+    fb.onSnapshot(fb.query(col, orderBy("createdAt","asc")), (snap)=>{
       const docs=[];
       snap.forEach(d=>docs.push({ id:d.id, ...d.data() }));
 
-      // Mostrar mini-rail (todas las fotos existentes)
       $("#count").textContent=`${docs.length} foto${docs.length===1?"":"s"}`;
       const r=$("#rail"); r.innerHTML="";
       docs.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
 
-      // Solo agregamos a cola las que aún no se mostraron
       const fresh = docs.filter(d=>!shownIds.has(d.id));
-      if(fresh.length){
-        queue.push(...fresh);
-        if(!slideActive) startSlideshow();
-      }
+      fresh.forEach(d=>fb.toDelete.add(d.id));         // marcar para limpieza en reload
+      if(fresh.length){ queue.push(...fresh); if(!slideActive) startSlideshow(); }
     });
 
-    /* SUBIR (Base64 a Firestore) */
+    /* Subida (desde QR) */
     $("#btnPickUp")?.addEventListener("click", ()=>openChooserFor($("#fileUpCam"), $("#fileUpGal")));
     $("#fileUpCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
     $("#fileUpGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
@@ -814,15 +768,27 @@ async function initFirebase(){
       }
     });
 
+    /* Limpieza al recargar/cerrar: intentar borrar lo pendiente */
+    window.addEventListener("beforeunload", async ()=>{
+      try{
+        const ids=[...fb.toDelete];
+        for(const id of ids){ await tryDelete(id); }
+      }catch(_){}
+    });
+
   }catch(err){
     console.error("Firestore no inicializado:", err);
     $("#fbWarn").classList.remove("hidden");
     ["btnUp","btnArtUpload"].forEach(id=>document.getElementById(id)?.classList.add("disabled"));
   }
 }
+async function tryDelete(id){
+  try{ if(fb.ok){ await fb.deleteDoc(fb.doc(fb.db, `rooms/${room}/photos/${id}`)); fb.toDelete.delete(id); } }
+  catch(e){ /* silencioso */ }
+}
 initFirebase();
 
-/* ====== Mostrar/Ocultar QR vs Frame en carga inicial ====== */
+/* Visibilidad inicial */
 function initialVisibility(){ showCenter(true); showFrame(false); }
 initialVisibility();
 </script>
