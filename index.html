@@ -36,7 +36,13 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .qr img{width:100%;height:100%;image-rendering:pixelated;display:block}
 .logo{max-width:none;max-height:none;object-fit:contain;display:none}
 .art{position:absolute;object-fit:contain}
-.photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:0}
+
+/* Marco cuadrado para la foto (editable) */
+.frame{position:absolute;display:none; /* visible solo cuando hay foto */
+  background:#000; border:2px solid rgba(255,255,255,.18); border-radius:14px;
+  overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.5); z-index:0;
+}
+.frame img{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Controles flotantes */
 .ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:6}
@@ -44,7 +50,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .viewer:fullscreen .ctrls{display:none}
 
 /* Modo edición */
-.select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode #logo,.select-mode .art{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
+.select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode #logo,.select-mode .art,.select-mode #frame{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
 #editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;
   padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
 .select-mode #editChip{display:block}
@@ -115,7 +121,12 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
       <div id="fbWarn" class="warn hidden">⚠️ No conectado a Firestore o permisos denegados. Revisá Auth anónimo y reglas.</div>
       <div class="viewer" id="viewer">
         <canvas id="fxMain" class="cvfx"></canvas>
-        <img id="photo" class="photo" alt="">
+
+        <!-- Marco cuadrado editable donde se muestra la foto -->
+        <div id="frame" class="frame">
+          <img id="photo" alt="">
+        </div>
+
         <div class="layer-arts" id="artsMain"></div>
 
         <div class="safe">
@@ -129,7 +140,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           </div>
         </div>
 
-        <div id="editChip">✏️ Edición — arrastrá; clic suelta · Guardar fija</div>
+        <div id="editChip">✏️ Edición — arrastrá; clic suelta · Manijas para escalar</div>
 
         <div class="ctrls">
           <button id="btnFull" class="btn" type="button">⛶</button>
@@ -177,7 +188,9 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="small">Previsualización</div>
           <div class="viewer" id="viewerPrev" style="aspect-ratio:16/9">
             <canvas id="fxPrev" class="cvfx"></canvas>
-            <img id="photoPrev" class="photo" alt="">
+
+            <div id="framePrev" class="frame" style="display:block;"></div>
+
             <div class="layer-arts" id="artsPrev"></div>
             <div class="safe">
               <div class="layer-center">
@@ -247,7 +260,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <label style="min-width:140px">Duración por foto (seg)</label>
             <input id="durSec" type="number" min="1" max="60" value="5">
           </div>
-          <div class="small">Las fotos se muestran por este tiempo y luego avanzan. Al finalizar la última, vuelve el QR.</div>
+          <div class="small">Cada foto aparece una sola vez. Al terminar, vuelve el QR.</div>
 
         </div>
       </div>
@@ -367,7 +380,9 @@ const S = Object.assign({
   qrOffX:0, qrOffY:0, qrScale:100,
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
   arts:[],
-  durationSec: 5  // ⏱️ nuevo: duración por foto
+  /* Marco de foto (base ~ tamaño del recuadro rojo) */
+  frameBasePct:60, frameOffX:0, frameOffY:0, frameScale:100,
+  durationSec: 5
 }, DEFAULTS);
 let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
@@ -383,9 +398,8 @@ function applyTheme(){
   if($("#bg"))       s.bg=$("#bg").value;
   if($("#tx"))       s.text=$("#tx").value;
   if($("#qrPct"))    s.qrPct=Number($("#qrPct").value||58);
-  if($("#durSec"))   s.durationSec=Math.max(1, Number($("#durSec").value||5)); // ⏱️
+  if($("#durSec"))   s.durationSec=Math.max(1, Number($("#durSec").value||5));
   layoutAll();
-  // si cambia la duración y hay slideshow corriendo, reiniciamos para aplicar al instante
   if(slideActive) { resetSlideshow(); }
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
@@ -435,6 +449,18 @@ function placeByPos(el,pos){
   else {el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%)";}
 }
 function setTS(el, xPct, yPct, scale){ el.style.transformOrigin="center center"; el.style.transform=`translate(${xPct}%, ${yPct}%) scale(${(scale||100)/100})`; }
+function layoutFrame(where){
+  const s=ST();
+  const viewer = where==="main" ? $("#viewer") : $("#viewerPrev");
+  const frame  = where==="main" ? $("#frame")  : $("#framePrev");
+  if(!viewer || !frame) return;
+  const SCALE  = (where==="prev") ? .7 : 1;
+  const side = Math.floor(Math.min(viewer.clientWidth, viewer.clientHeight) * (s.frameBasePct||60) / 100 * SCALE);
+  frame.style.width = side+"px";
+  frame.style.height= side+"px";
+  // posicionamiento editable
+  setTS(frame, s.frameOffX||0, s.frameOffY||0, (s.frameScale||100)*(where==="prev"?SCALE*100:100)/100);
+}
 function layoutViewer(where){
   const s = ST();
   const viewer = where==="main" ? $("#viewer") : $("#viewerPrev");
@@ -461,6 +487,7 @@ function layoutViewer(where){
   placeByPos(logo,s.logoPos||"center");
   setTS(logo, s.logoOffX||0, s.logoOffY||0, (s.logoScale||100)*(where==="prev"?SCALE*100:100)/100);
 
+  // articulos decorativos
   arts.innerHTML="";
   (s.arts||[]).forEach(a=>{
     const im=new Image(); im.src=a.url; im.className="art"; im.style.height=((a.sizeVH||18)*SCALE)+"vh"; im.style.opacity=(a.alpha||100)/100;
@@ -468,6 +495,8 @@ function layoutViewer(where){
     setTS(im, a.offX||0, a.offY||0, (a.scale||100));
     im.dataset.artId=a.id;
   });
+
+  layoutFrame(where);
 }
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
 window.addEventListener("resize", layoutAll);
@@ -480,6 +509,7 @@ function getKey(el){
   if(el?.id==="sub")   return "sub";
   if(el?.id==="qrBox") return "qr";
   if(el?.id==="logo")  return "logo";
+  if(el?.id==="frame") return "frame";
   if(el?.classList?.contains("art")) return "art:"+el.dataset.artId;
   return "";
 }
@@ -489,13 +519,14 @@ function getOffsets(key){
   if(key==="sub")   return {x:s.subOffX||0,y:s.subOffY||0,sc:s.subScale||100,set:(x,y,sc)=>{T.subOffX=x;T.subOffY=y;if(sc!=null)T.subScale=sc;}};
   if(key==="qr")    return {x:s.qrOffX||0,y:s.qrOffY||0,sc:s.qrScale||100,set:(x,y,sc)=>{T.qrOffX=x;T.qrOffY=y;if(sc!=null)T.qrScale=sc;}};
   if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}};
+  if(key==="frame") return {x:s.frameOffX||0,y:s.frameOffY||0,sc:s.frameScale||100,set:(x,y,sc)=>{T.frameOffX=x;T.frameOffY=y;if(sc!=null)T.frameScale=sc;}};
   if(key.startsWith("art:")){
     const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
     return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};}
   return {x:0,y:0,sc:100,set:()=>{}};
 }
 function bindSelectables(on){
-  const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),...$("#artsMain").querySelectorAll(".art")];
+  const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),$("#frame"),...$("#artsMain").querySelectorAll(".art")];
   els.forEach(el=>{ if(!el) return; el.style.pointerEvents = on ? "auto" : "none"; if(on){ el.addEventListener("pointerdown", onDown); } else { el.removeEventListener("pointerdown", onDown); }});
 }
 function onDown(e){
@@ -639,7 +670,7 @@ function applyInitial(){
   $("#bg")       && ($("#bg").value=S.bg);
   $("#tx")       && ($("#tx").value=S.text);
   $("#qrPct")    && ($("#qrPct").value=S.qrPct);
-  $("#durSec")   && ($("#durSec").value=S.durationSec); // ⏱️
+  $("#durSec")   && ($("#durSec").value=S.durationSec);
   $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
   layoutAll();
 }
@@ -662,7 +693,6 @@ async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   const ctx = cv.getContext('2d');
   ctx.drawImage(bitmap, 0, 0, nw, nh);
   let q = quality, dataURL = cv.toDataURL('image/jpeg', q);
-  // Bajar calidad si quedó muy pesada (> 900KB aprox)
   while (dataURL.length > 900*1024 && q > 0.5){
     q -= 0.08;
     dataURL = cv.toDataURL('image/jpeg', q);
@@ -670,56 +700,48 @@ async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   return dataURL;
 }
 
-/* =============== SLIDESHOW (nuevo) =============== */
-let photosArr = [];        // array de docs {b64|url}
+/* =============== SLIDESHOW (solo-una-vez) =============== */
+let shownIds = new Set();  // ids ya mostrados
+let queue    = [];         // cola de nuevas fotos sin mostrar (objetos {id, b64|url})
 let slideIndex = 0;
 let slideTimer = null;
 let slideActive = false;
 
 function showCenter(on){
-  const center = $("#qrBox").parentElement; // contenedor de título/sub/QR/logo
+  const center = $("#qrBox").parentElement;
   center.style.display = on ? "grid" : "none";
+}
+function showFrame(on){
+  $("#frame").style.display = on ? "block" : "none";
 }
 function showPhoto(src){
   const ph=$("#photo");
   ph.src=src;
-  ph.onload=()=>{ ph.style.display="block"; showCenter(false); };
+  ph.onload=()=>{ showCenter(false); showFrame(true); };
 }
-function hidePhoto(){
-  $("#photo").style.display="none";
+function endShow(){
+  showFrame(false); showCenter(true);
+  slideActive=false; clearTimeout(slideTimer); slideTimer=null;
 }
-
-function startSlideshow(){
-  if(uploadMode) return; // no corre en vista de subida
-  if(!photosArr.length){
-    hidePhoto(); showCenter(true);
-    slideActive=false;
-    return;
+function runQueue(){
+  if(slideIndex >= queue.length){ // terminó esta tanda
+    queue = []; slideIndex = 0; endShow(); return;
   }
-  slideActive=true;
-  slideIndex = 0;
-  runSlide();
-}
-function runSlide(){
-  // Si ya terminamos todas, volvemos al QR
-  if(slideIndex >= photosArr.length){
-    hidePhoto(); showCenter(true);
-    slideActive=false;
-    slideTimer=null;
-    return;
-  }
-  const p = photosArr[slideIndex];
+  const p = queue[slideIndex];
   const src = p.b64 || p.url;
+  shownIds.add(p.id);          // marcar como vista
   showPhoto(src);
-
   const dur = Math.max(1, Number(ST().durationSec||5));
   clearTimeout(slideTimer);
-  slideTimer = setTimeout(()=>{ slideIndex++; runSlide(); }, dur*1000);
+  slideTimer = setTimeout(()=>{ slideIndex++; runQueue(); }, dur*1000);
 }
-function resetSlideshow(){
-  clearTimeout(slideTimer);
-  slideTimer=null;
-  startSlideshow();
+function startSlideshow(){
+  if(uploadMode) return;
+  if(!queue.length){ endShow(); return; }
+  slideActive=true; slideIndex=0; runQueue();
+}
+function resetSlideshow(){ // reinicia sobre la cola actual (sin repetir vistas)
+  clearTimeout(slideTimer); slideTimer=null; startSlideshow();
 }
 
 /* =================== FIREBASE (solo Firestore + Auth anónimo) =================== */
@@ -736,7 +758,7 @@ async function initFirebase(){
       apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
       authDomain: "qr-proyector.firebaseapp.com",
       projectId: "qr-proyector",
-      storageBucket: "qr-proyector.appspot.com", // no usado
+      storageBucket: "qr-proyector.appspot.com",
       messagingSenderId: "1056308881873",
       appId: "1:1056308881873:web:c48321a62c1597f3ffd8f0",
       measurementId: "G-7634GLJM1F"
@@ -746,12 +768,8 @@ async function initFirebase(){
     const db  = getFirestore(app);
     const auth = getAuth(app);
 
-    // Intentar login anónimo (para reglas que exigen auth)
     await new Promise((resolve)=>{
-      onAuthStateChanged(auth, (u)=>{
-        if(u) return resolve();
-        signInAnonymously(auth).finally(resolve);
-      });
+      onAuthStateChanged(auth, (u)=>{ if(u) return resolve(); signInAnonymously(auth).finally(resolve); });
     });
 
     const col = collection(db, `rooms/${room}/photos`);
@@ -759,18 +777,22 @@ async function initFirebase(){
 
     $("#fbWarn").classList.add("hidden");
 
-    /* Escuchar fotos (lee doc.b64 o doc.url) y alimentar slideshow */
+    /* Escuchar fotos (con id) y alimentar cola sin repetir */
     fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
-      const tmp=[]; snap.forEach(d=>tmp.push(d.data()));
-      photosArr = tmp;
+      const docs=[];
+      snap.forEach(d=>docs.push({ id:d.id, ...d.data() }));
 
-      // UI mini-rail
-      $("#count").textContent=`${photosArr.length} foto${photosArr.length===1?"":"s"}`;
+      // Mostrar mini-rail (todas las fotos existentes)
+      $("#count").textContent=`${docs.length} foto${docs.length===1?"":"s"}`;
       const r=$("#rail"); r.innerHTML="";
-      photosArr.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
+      docs.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
 
-      // Reiniciar slideshow para recorrer todas con la duración configurada
-      resetSlideshow();
+      // Solo agregamos a cola las que aún no se mostraron
+      const fresh = docs.filter(d=>!shownIds.has(d.id));
+      if(fresh.length){
+        queue.push(...fresh);
+        if(!slideActive) startSlideshow();
+      }
     });
 
     /* SUBIR (Base64 a Firestore) */
@@ -795,11 +817,14 @@ async function initFirebase(){
   }catch(err){
     console.error("Firestore no inicializado:", err);
     $("#fbWarn").classList.remove("hidden");
-    // Desactivar botones de subida en modo sin conexión
     ["btnUp","btnArtUpload"].forEach(id=>document.getElementById(id)?.classList.add("disabled"));
   }
 }
 initFirebase();
+
+/* ====== Mostrar/Ocultar QR vs Frame en carga inicial ====== */
+function initialVisibility(){ showCenter(true); showFrame(false); }
+initialVisibility();
 </script>
 </body>
 </html>
