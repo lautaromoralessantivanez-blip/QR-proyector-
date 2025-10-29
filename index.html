@@ -240,6 +240,15 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <input id="artGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
           <div class="small">El artículo se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
+
+          <!-- DURACIÓN SLIDESHOW -->
+          <hr style="border-color:rgba(255,255,255,.12)">
+          <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
+            <label style="min-width:140px">Duración por foto (seg)</label>
+            <input id="durSec" type="number" min="1" max="60" value="5">
+          </div>
+          <div class="small">Las fotos se muestran por este tiempo y luego avanzan. Al finalizar la última, vuelve el QR.</div>
+
         </div>
       </div>
     </div>
@@ -348,7 +357,7 @@ class FX{
 new FX($("#fxMain"), $("#viewer"));
 new FX($("#fxPrev"), $("#viewerPrev"));
 
-/* Estado */
+/* ======== ESTADO Y AJUSTES ======== */
 const DEFAULTS = JSON.parse(localStorage.getItem("qr:settings") || "{}");
 const S = Object.assign({
   title:"¡Subí tu foto con el QR!", subText:"Escaneá y subí 📲", font:"Poppins",
@@ -357,7 +366,8 @@ const S = Object.assign({
   subOffX:0,subOffY:0, subScale:100,
   qrOffX:0, qrOffY:0, qrScale:100,
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
-  arts:[]
+  arts:[],
+  durationSec: 5  // ⏱️ nuevo: duración por foto
 }, DEFAULTS);
 let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
@@ -373,9 +383,12 @@ function applyTheme(){
   if($("#bg"))       s.bg=$("#bg").value;
   if($("#tx"))       s.text=$("#tx").value;
   if($("#qrPct"))    s.qrPct=Number($("#qrPct").value||58);
+  if($("#durSec"))   s.durationSec=Math.max(1, Number($("#durSec").value||5)); // ⏱️
   layoutAll();
+  // si cambia la duración y hay slideshow corriendo, reiniciamos para aplicar al instante
+  if(slideActive) { resetSlideshow(); }
 }
-["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
+["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
 /* Pickers con chooser (Logo / Artículo / Upload) */
 async function openChooserFor(hiddenCam, hiddenGal){
@@ -459,7 +472,7 @@ function layoutViewer(where){
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
 window.addEventListener("resize", layoutAll);
 
-/* Edición con arrastre y BBox */
+/* ======== EDICIÓN con arrastre + BBox ======== */
 let edit=false, dragging=false, dragEl=null, selectedEl=null, startX=0, startY=0, baseX=0, baseY=0;
 const bbox=$("#bbox");
 function getKey(el){
@@ -478,8 +491,7 @@ function getOffsets(key){
   if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}};
   if(key.startsWith("art:")){
     const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
-    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};
-  }
+    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};}
   return {x:0,y:0,sc:100,set:()=>{}};
 }
 function bindSelectables(on){
@@ -627,6 +639,7 @@ function applyInitial(){
   $("#bg")       && ($("#bg").value=S.bg);
   $("#tx")       && ($("#tx").value=S.text);
   $("#qrPct")    && ($("#qrPct").value=S.qrPct);
+  $("#durSec")   && ($("#durSec").value=S.durationSec); // ⏱️
   $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
   layoutAll();
 }
@@ -657,12 +670,64 @@ async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   return dataURL;
 }
 
+/* =============== SLIDESHOW (nuevo) =============== */
+let photosArr = [];        // array de docs {b64|url}
+let slideIndex = 0;
+let slideTimer = null;
+let slideActive = false;
+
+function showCenter(on){
+  const center = $("#qrBox").parentElement; // contenedor de título/sub/QR/logo
+  center.style.display = on ? "grid" : "none";
+}
+function showPhoto(src){
+  const ph=$("#photo");
+  ph.src=src;
+  ph.onload=()=>{ ph.style.display="block"; showCenter(false); };
+}
+function hidePhoto(){
+  $("#photo").style.display="none";
+}
+
+function startSlideshow(){
+  if(uploadMode) return; // no corre en vista de subida
+  if(!photosArr.length){
+    hidePhoto(); showCenter(true);
+    slideActive=false;
+    return;
+  }
+  slideActive=true;
+  slideIndex = 0;
+  runSlide();
+}
+function runSlide(){
+  // Si ya terminamos todas, volvemos al QR
+  if(slideIndex >= photosArr.length){
+    hidePhoto(); showCenter(true);
+    slideActive=false;
+    slideTimer=null;
+    return;
+  }
+  const p = photosArr[slideIndex];
+  const src = p.b64 || p.url;
+  showPhoto(src);
+
+  const dur = Math.max(1, Number(ST().durationSec||5));
+  clearTimeout(slideTimer);
+  slideTimer = setTimeout(()=>{ slideIndex++; runSlide(); }, dur*1000);
+}
+function resetSlideshow(){
+  clearTimeout(slideTimer);
+  slideTimer=null;
+  startSlideshow();
+}
+
 /* =================== FIREBASE (solo Firestore + Auth anónimo) =================== */
 let fb = { ok:false };
 async function initFirebase(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } =
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } =
       await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
     const { getAuth, signInAnonymously, onAuthStateChanged } =
       await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
@@ -690,23 +755,22 @@ async function initFirebase(){
     });
 
     const col = collection(db, `rooms/${room}/photos`);
-    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, col };
+    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, col };
 
     $("#fbWarn").classList.add("hidden");
 
-    /* Escuchar fotos (ahora lee doc.b64 o doc.url para compatibilidad) */
+    /* Escuchar fotos (lee doc.b64 o doc.url) y alimentar slideshow */
     fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
-      const photos=[]; snap.forEach(d=>photos.push(d.data()));
-      $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
+      const tmp=[]; snap.forEach(d=>tmp.push(d.data()));
+      photosArr = tmp;
+
+      // UI mini-rail
+      $("#count").textContent=`${photosArr.length} foto${photosArr.length===1?"":"s"}`;
       const r=$("#rail"); r.innerHTML="";
-      photos.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
-      const ph=$("#photo"), box=$("#qrBox");
-      if(!photos.length){ ph.style.display="none"; box.parentElement.style.display="grid"; }
-      else{
-        const last = photos[photos.length-1];
-        const src  = last.b64 || last.url;
-        ph.src=src; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
-      }
+      photosArr.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
+
+      // Reiniciar slideshow para recorrer todas con la duración configurada
+      resetSlideshow();
     });
 
     /* SUBIR (Base64 a Firestore) */
