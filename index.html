@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Pantalla con QR — Edición + Subida remota</title>
+<title>Pantalla con QR — Edición + Subida remota (sin Storage)</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
 
@@ -45,7 +45,8 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 
 /* Modo edición */
 .select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode #logo,.select-mode .art{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
-#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
+#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;
+  padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
 .select-mode #editChip{display:block}
 #editHint{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;z-index:7;font-size:12px}
 .small{font-size:12px;color:#cbd5e1}
@@ -67,7 +68,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .rail{display:flex;gap:8px;overflow:auto;padding-bottom:6px}
 .rail img{width:88px;height:62px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.18)}
 
-/* Preview mini en Ajustes */
+/* Preview en Ajustes (mini) */
 #viewerPrev{max-width:340px}
 #viewerPrev .layer-center{transform:scale(.7);transform-origin:center}
 
@@ -75,7 +76,14 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Vista SOLO SUBIDA (#subir) */
+/* Chooser mini modal */
+#chooser{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;z-index:70;align-items:center;justify-content:center}
+#chooser .box{background:#0f172a;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px;min-width:280px}
+#chooser .box h3{margin:0 0 6px 0;font-size:16px}
+#chooser .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+#chooser .box .btn{background:#fff}
+
+/* --- Vista SOLO SUBIDA (cuando se abre con #subir) --- */
 .up-only header,.up-only #pantalla,.up-only #ajustes{display:none!important}
 .up-only main{max-width:520px;padding:24px 16px}
 .up-only .card{border-radius:18px}
@@ -84,6 +92,9 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .up-only .note{font-size:12px;color:#cbd5e1}
 .fileline{display:flex;align-items:center;gap:10px}
 .filehint{font-size:12px;color:#aab3c5}
+
+.warn{background:#3b0f0f;border:1px solid #ef4444;color:#fecaca;padding:8px 12px;border-radius:10px;margin-bottom:10px}
+.disabled{opacity:.5;pointer-events:none}
 </style>
 </head>
 <body>
@@ -101,6 +112,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   <!-- ===== PANTALLA ===== -->
   <section id="pantalla" class="pane">
     <div class="card">
+      <div id="fbWarn" class="warn hidden">⚠️ No conectado a Firestore o permisos denegados. Revisá Auth anónimo y reglas.</div>
       <div class="viewer" id="viewer">
         <canvas id="fxMain" class="cvfx"></canvas>
         <img id="photo" class="photo" alt="">
@@ -151,7 +163,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
     </div>
   </section>
 
-  <!-- ===== AJUSTES ===== -->
+  <!-- ===== AJUSTES (con PREVIEW) ===== -->
   <section id="ajustes" class="pane hidden">
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between;align-items:center">
@@ -196,10 +208,15 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Tamaño QR (%)</label><input id="qrPct" type="number" min="20" max="80" value="58"></div>
 
           <hr style="border-color:rgba(255,255,255,.12)">
-          <!-- LOGO -->
+          <!-- LOGO con chooser -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Logo</label>
-            <input id="logoFile" type="file" accept="image/*,.svg,.webp,.avif" />
+            <div class="fileline">
+              <button id="btnPickLogo" class="btn" type="button">Seleccionar archivo</button>
+              <span id="logoName" class="filehint">Ningún archivo seleccionado</span>
+            </div>
+            <input id="logoCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
+            <input id="logoGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Altura logo (vh)</label><input id="logoVH" type="number" min="6" max="40" value="18"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Posición logo</label>
@@ -210,12 +227,17 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <select id="logoBlend"><option value="normal" selected>Normal</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="lighten">Lighten</option><option value="darken">Darken</option></select>
           </div>
 
-          <!-- SUBIR ARTÍCULO -->
+          <!-- SUBIR ARTÍCULO con chooser -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Subir artículo</label>
-            <input id="artFile" type="file" accept="image/*,.svg,.webp,.avif" />
-            <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
+            <div class="fileline">
+              <button id="btnPickArt" class="btn" type="button">Seleccionar archivo</button>
+              <span id="artName" class="filehint">Ningún archivo seleccionado</span>
+              <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
+            </div>
+            <input id="artCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
+            <input id="artGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
           <div class="small">El artículo se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
         </div>
@@ -231,10 +253,15 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
         <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
       </div>
 
-      <!-- Input VISIBLE (como tu captura) -->
+      <!-- Elegir archivo (con chooser) -->
       <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
         <label style="min-width:120px">Archivo</label>
-        <input id="fileUp" type="file" accept="image/*,.svg,.webp,.avif,.gif">
+        <div class="fileline">
+          <button id="btnPickUp" class="btn" type="button">Seleccionar archivo</button>
+          <span id="upName" class="filehint">Ningún archivo seleccionado</span>
+        </div>
+        <input id="fileUpCam" type="file" accept="image/*,.svg,.webp,.avif,.gif" capture="environment" class="hidden">
+        <input id="fileUpGal" type="file" accept="image/*,.svg,.webp,.avif,.gif" class="hidden">
       </div>
 
       <div class="row" style="justify-content:flex-end;display:flex;margin-top:10px">
@@ -257,11 +284,31 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   </div>
 </div>
 
+<!-- Mini chooser Cámara/Galería reutilizable -->
+<div id="chooser">
+  <div class="box">
+    <h3>¿De dónde tomamos la imagen?</h3>
+    <div class="row">
+      <button id="chCam" class="btn" type="button">Cámara</button>
+      <button id="chGal" class="btn" type="button">Galería</button>
+      <button id="chCancel" class="btn" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
-/* =================== Utilidades =================== */
+/* =================== UTILIDADES BÁSICAS =================== */
 const $ = (s)=>document.querySelector(s);
-const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700);};
+const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
 const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
+
+/* Chooser genérico (cámara o galería) */
+let chooserResolve = null;
+function openChooser(){ return new Promise((res)=>{ chooserResolve=res; $("#chooser").style.display="flex"; }); }
+function closeChooser(){ $("#chooser").style.display="none"; chooserResolve=null; }
+$("#chCancel").onclick = ()=>{ chooserResolve?.(null); closeChooser(); };
+$("#chCam").onclick    = ()=>{ chooserResolve?.("cam"); closeChooser(); };
+$("#chGal").onclick    = ()=>{ chooserResolve?.("gal"); closeChooser(); };
 
 /* Tabs */
 function switchTab(id){
@@ -282,20 +329,22 @@ if(uploadMode){ document.body.classList.add("up-only"); $("#upload").classList.r
 else{ $("#pantalla").classList.remove("hidden"); }
 $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
 
-/* QR */
+/* QR visible siempre */
 function buildUploadURL(){ const url=new URL(location.href); url.searchParams.set("r", room); url.hash="#subir"; return url.toString(); }
 function qrImg(url, size){ const i=new Image(); i.alt="QR"; i.src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=0&data=${encodeURIComponent(url)}`; i.style.width="100%"; i.style.height="100%"; i.style.imageRendering="pixelated"; return i; }
 function layoutQR(box, viewer, scale=1){
-  const pct=Math.min(80,Math.max(20,Number($("#qrPct").value||58)));
-  const side=Math.floor(Math.min(viewer.clientWidth,viewer.clientHeight)*pct/100*scale);
-  box.style.width=side+"px"; box.style.height=side+"px";
-  box.innerHTML=""; box.appendChild(qrImg(buildUploadURL(),side));
+  const pct = Math.min(80,Math.max(20, Number($("#qrPct").value||58)));
+  const side = Math.floor(Math.min(viewer.clientWidth,viewer.clientHeight) * pct / 100 * scale);
+  box.style.width = side+"px"; box.style.height = side+"px";
+  box.innerHTML=""; box.appendChild(qrImg(buildUploadURL(), side));
 }
 
 /* FX placeholder */
-class FX{ constructor(cv,host){ this.cv=cv; this.host=host; this.ctx=cv.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
-  resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0); }
-  loop(){ this.ctx.clearRect(0,0,this.cv.width,this.cv.height); requestAnimationFrame(()=>this.loop()); } }
+class FX{
+  constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
+  resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0);}
+  loop(){ const {ctx}=this; ctx.clearRect(0,0,this.cv.width,this.cv.height); requestAnimationFrame(()=>this.loop()); }
+}
 new FX($("#fxMain"), $("#viewer"));
 new FX($("#fxPrev"), $("#viewerPrev"));
 
@@ -312,7 +361,7 @@ const S = Object.assign({
 }, DEFAULTS);
 let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
-/* Tema */
+/* Inputs de tema */
 function applyTheme(){
   document.documentElement.style.setProperty('--bg', $("#bg")?.value || S.bg);
   document.documentElement.style.setProperty('--text', $("#tx")?.value || S.text);
@@ -328,23 +377,42 @@ function applyTheme(){
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* Logo */
-$("#logoFile")?.addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; if(!f) return; ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
-["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{ const el=$("#"+id); if(!el) return; el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); }); });
+/* Pickers con chooser (Logo / Artículo / Upload) */
+async function openChooserFor(hiddenCam, hiddenGal){
+  const sel = await openChooser();
+  if(sel==="cam") hiddenCam.click();
+  else if(sel==="gal") hiddenGal.click();
+}
+let selectedLogoFile=null, selectedArtFile=null, selectedUpFile=null;
 
-/* Subir ARTÍCULO */
+$("#btnPickLogo")?.addEventListener("click", ()=>openChooserFor($("#logoCam"), $("#logoGal")));
+$("#logoCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
+$("#logoGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
+
+["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{
+  const el=$("#"+id); if(!el) return;
+  el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
+});
+
+/* ARTÍCULO */
+$("#btnPickArt")?.addEventListener("click", ()=>openChooserFor($("#artCam"), $("#artGal")));
+$("#artCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
+$("#artGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
+
 $("#btnArtUpload")?.addEventListener("click", ()=>{
-  const f = $("#artFile")?.files?.[0];
+  const f = selectedArtFile;
   if(!f){ toast("Elegí una imagen para el artículo"); return; }
   const url = URL.createObjectURL(f);
   const id  = "art_"+Date.now();
   S.arts = S.arts || [];
   S.arts.push({ id, url, pos:"top-left", sizeVH:18, alpha:100, offX:0, offY:0, scale:100 });
   persist(); layoutAll();
+  if(edit) bindSelectables(true);
+  selectedArtFile=null; $("#artName").textContent="Ningún archivo seleccionado";
   toast("Artículo subido ✅");
 });
 
-/* Layout principal (posiciones) */
+/* Layout general */
 function placeByPos(el,pos){
   const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
   if(pos==="top-left"){el.style.top=m;el.style.left=m}
@@ -391,7 +459,7 @@ function layoutViewer(where){
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
 window.addEventListener("resize", layoutAll);
 
-/* Edición con arrastre + redimensionado */
+/* Edición con arrastre y BBox */
 let edit=false, dragging=false, dragEl=null, selectedEl=null, startX=0, startY=0, baseX=0, baseY=0;
 const bbox=$("#bbox");
 function getKey(el){
@@ -464,7 +532,7 @@ function finishDrop(){
 function onUp(){ finishDrop(); }
 function onGlobalClickOnce(){ finishDrop(); }
 
-/* BBox */
+/* BBox / Handles */
 let resizing=false, resizeDir="", startScale=100, startWH={w:0,h:0};
 const bboxEl=$("#bbox");
 function showBBox(el){ bboxEl.style.display="block"; positionBBox(el); }
@@ -564,15 +632,38 @@ function applyInitial(){
 }
 applyInitial();
 
-/* =================== FIREBASE (con Auth anónima) =================== */
+/* Reset */
+$("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
+
+/* =================== COMPRESIÓN A BASE64 (sin Storage) =================== */
+async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
+  const bitmap = await createImageBitmap(file);
+  const {width: w, height: h} = bitmap;
+  let nw=w, nh=h;
+  if (Math.max(w,h) > maxSide){
+    const ratio = w>h ? maxSide/w : maxSide/h;
+    nw = Math.round(w*ratio); nh = Math.round(h*ratio);
+  }
+  const cv = document.createElement('canvas');
+  cv.width = nw; cv.height = nh;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, nw, nh);
+  let q = quality, dataURL = cv.toDataURL('image/jpeg', q);
+  // Bajar calidad si quedó muy pesada (> 900KB aprox)
+  while (dataURL.length > 900*1024 && q > 0.5){
+    q -= 0.08;
+    dataURL = cv.toDataURL('image/jpeg', q);
+  }
+  return dataURL;
+}
+
+/* =================== FIREBASE (solo Firestore + Auth anónimo) =================== */
 let fb = { ok:false };
 async function initFirebase(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } =
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } =
       await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
-    const { getStorage, ref: sRef, uploadBytes, getDownloadURL } =
-      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");
     const { getAuth, signInAnonymously, onAuthStateChanged } =
       await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
 
@@ -580,7 +671,7 @@ async function initFirebase(){
       apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
       authDomain: "qr-proyector.firebaseapp.com",
       projectId: "qr-proyector",
-      storageBucket: "qr-proyector.appspot.com",
+      storageBucket: "qr-proyector.appspot.com", // no usado
       messagingSenderId: "1056308881873",
       appId: "1:1056308881873:web:c48321a62c1597f3ffd8f0",
       measurementId: "G-7634GLJM1F"
@@ -588,78 +679,63 @@ async function initFirebase(){
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
-    const st  = getStorage(app);
-    const col = collection(db, `rooms/${room}/photos`);
     const auth = getAuth(app);
 
-    // Iniciar sesión anónima (necesario si las reglas exigen auth)
-    await new Promise((resolve, reject)=>{
-      onAuthStateChanged(auth, async (u)=>{
-        try{
-          if(!u) await signInAnonymously(auth);
-          resolve();
-        }catch(e){ reject(e); }
+    // Intentar login anónimo (para reglas que exigen auth)
+    await new Promise((resolve)=>{
+      onAuthStateChanged(auth, (u)=>{
+        if(u) return resolve();
+        signInAnonymously(auth).finally(resolve);
       });
     });
 
-    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, sRef, uploadBytes, getDownloadURL, st, col };
+    const col = collection(db, `rooms/${room}/photos`);
+    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, col };
 
-    /* Timeline + última foto (live) */
+    $("#fbWarn").classList.add("hidden");
+
+    /* Escuchar fotos (ahora lee doc.b64 o doc.url para compatibilidad) */
     fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
       const photos=[]; snap.forEach(d=>photos.push(d.data()));
       $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
       const r=$("#rail"); r.innerHTML="";
-      photos.forEach((p)=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; r.appendChild(im); });
+      photos.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
       const ph=$("#photo"), box=$("#qrBox");
       if(!photos.length){ ph.style.display="none"; box.parentElement.style.display="grid"; }
       else{
-        const last=photos[photos.length-1].url;
-        const bust = last + (last.includes("?") ? "&" : "?") + "t=" + Date.now();
-        ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
+        const last = photos[photos.length-1];
+        const src  = last.b64 || last.url;
+        ph.src=src; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
+      }
+    });
+
+    /* SUBIR (Base64 a Firestore) */
+    $("#btnPickUp")?.addEventListener("click", ()=>openChooserFor($("#fileUpCam"), $("#fileUpGal")));
+    $("#fileUpCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
+    $("#fileUpGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
+
+    $("#btnUp")?.addEventListener("click", async ()=>{
+      const f=selectedUpFile;
+      if(!f){ toast("Elegí un archivo primero"); return; }
+      try{
+        const b64 = await fileToCompressedDataURL(f, 1600, 0.78);
+        await fb.addDoc(col,{ b64, createdAt: fb.serverTimestamp(), name: f.name||"foto" });
+        selectedUpFile=null; $("#upName").textContent="Ningún archivo seleccionado";
+        toast("Foto subida ✅");
+      }catch(e){
+        console.error(e);
+        toast(e?.code==='permission-denied'?'Permiso denegado 🔒':'Error al subir');
       }
     });
 
   }catch(err){
-    console.error("Firebase no inicializado:", err);
-    toast("❗ No conectado a Firebase (QR y edición OK)");
+    console.error("Firestore no inicializado:", err);
+    $("#fbWarn").classList.remove("hidden");
+    // Desactivar botones de subida en modo sin conexión
+    ["btnUp","btnArtUpload"].forEach(id=>document.getElementById(id)?.classList.add("disabled"));
   }
 }
 initFirebase();
-
-/* ===== SUBIR: botón con progreso + errores claros ===== */
-let selectedUpFile=null;
-$("#fileUp").addEventListener("change",(e)=>{ selectedUpFile=e.target.files?.[0]||null; });
-
-$("#btnUp")?.addEventListener("click", async ()=>{
-  const btn = $("#btnUp");
-  const f = selectedUpFile || $("#fileUp")?.files?.[0];
-  if(!f){ toast("Elegí un archivo primero"); return; }
-  if(!fb.ok){ toast("❗ No conectado a Firebase"); return; }
-
-  try{
-    btn.disabled = true; const prevTxt = btn.textContent; btn.textContent = "Subiendo…";
-    const clean = (f.name||"foto").replace(/\s+/g,"_");
-    const name  = `${Date.now()}_${clean}`;
-    const ref   = fb.sRef(fb.st,`rooms/${room}/photos/${name}`);
-    await fb.uploadBytes(ref,f,{ contentType: f.type || "application/octet-stream" });
-    const url = await fb.getDownloadURL(ref);
-    await fb.addDoc(fb.col,{url,createdAt:fb.serverTimestamp()});
-    $("#fileUp").value=""; selectedUpFile=null;
-    toast("Foto subida ✅");
-    btn.textContent = prevTxt; btn.disabled = false;
-  }catch(e){
-    console.error("Error subir:", e);
-    let msg = "Error al subir";
-    if(e?.code==="permission-denied") msg="🔒 Permiso denegado en reglas";
-    if(e?.message?.includes("storage")) msg="⚠️ Error de Storage";
-    toast(msg);
-    $("#btnUp").disabled=false; $("#btnUp").textContent="Subir";
-  }
-});
-
-/* Reset */
-$("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
-
 </script>
 </body>
 </html>
