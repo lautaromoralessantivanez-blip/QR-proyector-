@@ -83,13 +83,6 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .up-only .hero{display:grid;gap:8px;justify-items:center;text-align:center;margin-bottom:10px}
 .up-only h1{font-size:22px}
 .up-only .note{font-size:12px;color:#cbd5e1}
-
-/* Hoja de selección (Cámara / Galería) */
-.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:none;z-index:90}
-.sheet .box{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:min(420px,90vw);background:#0f172a;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px}
-.sheet .box h3{margin:6px 8px 10px;font-size:14px;color:#cbd5e1}
-.sheet .row{display:flex;gap:8px;padding:8px}
-.sheet .row .btn{flex:1}
 </style>
 </head>
 <body>
@@ -212,17 +205,14 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <select id="logoBlend"><option value="normal" selected>Normal</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="lighten">Lighten</option><option value="darken">Darken</option></select>
           </div>
 
-          <!-- SUBIR ARTÍCULO (pregunta y agrega directo) -->
+          <!-- SUBIR ARTÍCULO con input + botón Subir -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Subir artículo</label>
-            <button id="btnArtAsk" class="btn" type="button">Subir artículo…</button>
+            <input id="artFile" type="file" accept="image/*,.svg,.webp,.avif">
+            <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
           </div>
-          <div class="small">Se agrega como decoración movible y editable en “Editar (E)”.</div>
-
-          <!-- inputs ocultos para artículo -->
-          <input id="artCam" class="hidden" type="file" accept="image/*,.svg,.webp,.avif" capture="environment">
-          <input id="artGal" class="hidden" type="file" accept="image/*,.svg,.webp,.avif">
+          <div class="small">Se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
         </div>
       </div>
     </div>
@@ -235,13 +225,13 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
         <h1>Subí tu foto 📤</h1>
         <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
       </div>
-      <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0;justify-content:flex-end">
-        <button id="btnUp" class="btn" type="button">Subir foto…</button>
+      <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
+        <label style="min-width:120px">Archivo</label>
+        <input id="fileUp" type="file" accept="image/*,.svg,.webp,.avif,.gif">
       </div>
-
-      <!-- inputs ocultos para subir foto (Cámara/Galería) -->
-      <input id="fileUpCam" class="hidden" type="file" accept="image/*,.svg,.webp,.avif,.gif" capture="environment">
-      <input id="fileUpGal" class="hidden" type="file" accept="image/*,.svg,.webp,.avif,.gif">
+      <div class="row" style="justify-content:flex-end;display:flex;margin-top:10px">
+        <button id="btnUp" class="btn" type="button">Subir</button>
+      </div>
     </div>
   </section>
 </main>
@@ -259,22 +249,8 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   </div>
 </div>
 
-<!-- Hoja simple de opciones (Cámara / Galería) -->
-<div id="sheet" class="sheet" aria-hidden="true">
-  <div class="box">
-    <h3 id="sheetTitle">Elegí el origen</h3>
-    <div class="row">
-      <button id="optCam" class="btn" type="button">📷 Cámara</button>
-      <button id="optGal" class="btn" type="button">🖼️ Galería</button>
-    </div>
-    <div class="row">
-      <button id="optCancel" class="btn" type="button">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
-/* =================== UTILIDADES BÁSICAS (SIEMPRE ACTIVAS) =================== */
+/* =================== UTILIDADES BÁSICAS =================== */
 const $ = (s)=>document.querySelector(s);
 const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
 const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
@@ -298,7 +274,7 @@ if(uploadMode){ document.body.classList.add("up-only"); $("#upload").classList.r
 else{ $("#pantalla").classList.remove("hidden"); }
 $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
 
-/* QR helper: SIEMPRE disponible */
+/* QR visible siempre */
 function buildUploadURL(){ const url=new URL(location.href); url.searchParams.set("r", room); url.hash="#subir"; return url.toString(); }
 function qrImg(url, size){ const i=new Image(); i.alt="QR"; i.src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=0&data=${encodeURIComponent(url)}`; i.style.width="100%"; i.style.height="100%"; i.style.imageRendering="pixelated"; return i; }
 function layoutQR(box, viewer, scale=1){
@@ -332,50 +308,40 @@ let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:setti
 
 /* Inputs de tema */
 function applyTheme(){
-  document.documentElement.style.setProperty('--bg', $("#bg").value);
-  document.documentElement.style.setProperty('--text', $("#tx").value);
-  document.documentElement.style.setProperty('--title-font', `"${$("#fontSel").value}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);
+  document.documentElement.style.setProperty('--bg', $("#bg")?.value || S.bg);
+  document.documentElement.style.setProperty('--text', $("#tx")?.value || S.text);
+  document.documentElement.style.setProperty('--title-font', `"${($("#fontSel")?.value || S.font)}",system-ui,-apple-system,Segoe UI,Roboto,sans-serif`);
   const s=ST();
-  s.title=$("#inpTitle").value; s.subText=$("#inpSub").value;
-  s.font=$("#fontSel").value; s.bg=$("#bg").value; s.text=$("#tx").value; s.qrPct=Number($("#qrPct").value||58);
+  if($("#inpTitle")) s.title=$("#inpTitle").value;
+  if($("#inpSub"))   s.subText=$("#inpSub").value;
+  if($("#fontSel"))  s.font=$("#fontSel").value;
+  if($("#bg"))       s.bg=$("#bg").value;
+  if($("#tx"))       s.text=$("#tx").value;
+  if($("#qrPct"))    s.qrPct=Number($("#qrPct").value||58);
   layoutAll();
 }
-["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id).addEventListener("input",applyTheme));
+["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
 /* Logo */
-$("#logoFile").addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; if(!f) return; ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado"); });
+$("#logoFile")?.addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; if(!f) return; ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
 ["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{
   const el=$("#"+id); if(!el) return;
   el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
 });
 
-/* Subir ARTÍCULO (Cámara/Galería) */
-const sheet=$("#sheet"), optCam=$("#optCam"), optGal=$("#optGal"), optCancel=$("#optCancel"), sheetTitle=$("#sheetTitle");
-function askSource(title="Elegí el origen"){
-  sheetTitle.textContent=title; sheet.style.display="block";
-  return new Promise(res=>{
-    const done=(v)=>{ sheet.style.display="none"; res(v); };
-    optCam.onclick=()=>done("camera"); optGal.onclick=()=>done("gallery"); optCancel.onclick=()=>done(null);
-    sheet.onclick=(e)=>{ if(e.target===sheet) done(null); };
-  });
-}
-$("#btnArtAsk")?.addEventListener("click", async ()=>{
-  const choice = await askSource("Origen del artículo");
-  if(!choice) return;
-  const input = choice==="camera" ? $("#artCam") : $("#artGal");
-  input.value="";
-  input.onchange = (ev)=>{
-    const f=ev.target.files?.[0]; if(!f) return;
-    const url = URL.createObjectURL(f);
-    const id  = "art_"+Date.now();
-    S.arts = S.arts || [];
-    S.arts.push({ id, url, pos:"top-left", sizeVH:18, alpha:100, offX:0, offY:0, scale:100 });
-    persist(); layoutAll(); toast("Artículo subido ✅");
-  };
-  input.click();
+/* Subir ARTÍCULO (input + botón) */
+$("#btnArtUpload")?.addEventListener("click", ()=>{
+  const f = $("#artFile")?.files?.[0];
+  if(!f){ toast("Elegí una imagen para el artículo"); return; }
+  const url = URL.createObjectURL(f);
+  const id  = "art_"+Date.now();
+  S.arts = S.arts || [];
+  S.arts.push({ id, url, pos:"top-left", sizeVH:18, alpha:100, offX:0, offY:0, scale:100 });
+  persist(); layoutAll(); $("#artFile").value="";
+  toast("Artículo subido ✅");
 });
 
-/* Layout */
+/* Layout general */
 function placeByPos(el,pos){
   const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
   if(pos==="top-left"){el.style.top=m;el.style.left=m}
@@ -394,6 +360,8 @@ function layoutViewer(where){
   const logo   = where==="main" ? $("#logo") : $("#logoPrev");
   const arts   = where==="main" ? $("#artsMain") : $("#artsPrev");
   const SCALE  = (where==="prev") ? .7 : 1;
+
+  if(!viewer) return;
 
   title.textContent=s.title; sub.textContent=s.subText;
   title.style.color=s.text;  sub.style.color=s.text;  viewer.style.background=s.bg;
@@ -495,16 +463,17 @@ function onGlobalClickOnce(){ finishDrop(); }
 
 /* BBox / Handles */
 let resizing=false, resizeDir="", startScale=100, startWH={w:0,h:0};
-function showBBox(el){ bbox.style.display="block"; positionBBox(el); }
-function hideBBox(){ bbox.style.display="none"; }
+const bboxEl=$("#bbox");
+function showBBox(el){ bboxEl.style.display="block"; positionBBox(el); }
+function hideBBox(){ bboxEl.style.display="none"; }
 function positionBBox(el){
   const r=el.getBoundingClientRect(), host=$("#viewer").getBoundingClientRect();
-  bbox.style.left=(r.left-host.left)+"px";
-  bbox.style.top =(r.top -host.top )+"px";
-  bbox.style.width = r.width+"px";
-  bbox.style.height= r.height+"px";
+  bboxEl.style.left=(r.left-host.left)+"px";
+  bboxEl.style.top =(r.top -host.top )+"px";
+  bboxEl.style.width = r.width+"px";
+  bboxEl.style.height= r.height+"px";
 }
-bbox.querySelectorAll(".handle").forEach(h=>{
+bboxEl.querySelectorAll(".handle").forEach(h=>{
   h.addEventListener("pointerdown",(e)=>{
     if(!edit) return;
     e.stopPropagation(); e.preventDefault();
@@ -534,7 +503,7 @@ function onResizeMove(e){
 }
 function endResize(){ resizing=false; }
 
-/* Modo edición toggles */
+/* Modo edición */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 function setEdit(on){
   if(on===edit) return;
@@ -579,10 +548,14 @@ document.addEventListener("keydown",(e)=>{
   if(e.code==="Escape"){ if(edit){ setEdit(false); } else if(isFS()) exitFS(); }
 },{capture:true,passive:false});
 
-/* Inicial UI (QR sale ya mismo) */
+/* Inicial UI */
 function applyInitial(){
-  $("#inpTitle").value=S.title; $("#inpSub").value=S.subText;
-  $("#fontSel").value=S.font; $("#bg").value=S.bg; $("#tx").value=S.text; $("#qrPct").value=S.qrPct;
+  $("#inpTitle") && ($("#inpTitle").value=S.title);
+  $("#inpSub")   && ($("#inpSub").value=S.subText);
+  $("#fontSel")  && ($("#fontSel").value=S.font);
+  $("#bg")       && ($("#bg").value=S.bg);
+  $("#tx")       && ($("#tx").value=S.text);
+  $("#qrPct")    && ($("#qrPct").value=S.qrPct);
   $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
   layoutAll();
 }
@@ -591,7 +564,7 @@ applyInitial();
 /* Reset */
 $("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
 
-/* =================== FIREBASE: SE CARGA EN SEGUNDO PLANO =================== */
+/* =================== FIREBASE EN SEGUNDO PLANO =================== */
 let fb = { ok:false };
 async function initFirebase(){
   try{
@@ -617,7 +590,7 @@ async function initFirebase(){
     const col = collection(db, `rooms/${room}/photos`);
     fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, sRef, uploadBytes, getDownloadURL, st, col };
 
-    /* Rail completo */
+    /* Línea de tiempo y última foto */
     fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
       const photos=[]; snap.forEach(d=>photos.push(d.data()));
       $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
@@ -631,8 +604,6 @@ async function initFirebase(){
         ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
       }
     });
-
-    /* Última en vivo (robusto a timestamps pendientes) */
     fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","desc"), fb.limit(1)), (snap)=>{
       const docs=[]; snap.forEach(d=>docs.push(d.data()));
       if(!docs.length) return;
@@ -642,28 +613,19 @@ async function initFirebase(){
       ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
     });
 
-    /* Subir FOTO (pregunta cámara/galería) */
-    function chooseSource(){ return new Promise(res=>{ $("#sheetTitle").textContent="¿Desde dónde querés subir la foto?"; $("#sheet").style.display="block";
-      const done=(v)=>{ $("#sheet").style.display="none"; res(v); };
-      $("#optCam").onclick=()=>done("camera"); $("#optGal").onclick=()=>done("gallery"); $("#optCancel").onclick=()=>done(null);
-      $("#sheet").onclick=(e)=>{ if(e.target.id==="sheet") done(null); }; });
-    }
-    async function performUpload(file){
-      const name=`${Date.now()}_${(file.name||"foto").replace(/\s+/g,"_")}`;
-      const ref=fb.sRef(fb.st,`rooms/${room}/photos/${name}`);
-      await fb.uploadBytes(ref,file);
-      const url=await fb.getDownloadURL(ref);
-      await fb.addDoc(fb.col,{url,createdAt:fb.serverTimestamp()});
-      toast("Foto subida ✅");
-      setTimeout(()=>layoutAll(), 300);
-    }
+    /* SUBIR FOTO (con input + botón “Subir”) */
     $("#btnUp")?.addEventListener("click", async ()=>{
-      const choice = await chooseSource();
-      if(!choice) return;
-      const input = choice==="camera" ? $("#fileUpCam") : $("#fileUpGal");
-      input.value="";
-      input.onchange = async (ev)=>{ const f=ev.target.files?.[0]; if(!f) return; try{ await performUpload(f); }catch(e){ console.error(e); toast("Error al subir"); } };
-      input.click();
+      const f=$("#fileUp")?.files?.[0];
+      if(!f){ toast("Elegí un archivo primero"); return; }
+      try{
+        const name=`${Date.now()}_${(f.name||"foto").replace(/\s+/g,"_")}`;
+        const ref=fb.sRef(st,`rooms/${room}/photos/${name}`);
+        await fb.uploadBytes(ref,f);
+        const url=await fb.getDownloadURL(ref);
+        await fb.addDoc(col,{url,createdAt:fb.serverTimestamp()});
+        $("#fileUp").value="";
+        toast("Foto subida ✅");
+      }catch(e){ console.error(e); toast("Error al subir"); }
     });
 
   }catch(err){
