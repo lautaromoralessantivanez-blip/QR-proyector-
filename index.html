@@ -76,6 +76,13 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* Chooser mini modal */
+#chooser{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;z-index:70;align-items:center;justify-content:center}
+#chooser .box{background:#0f172a;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px;min-width:280px}
+#chooser .box h3{margin:0 0 6px 0;font-size:16px}
+#chooser .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+#chooser .box .btn{background:#fff}
+
 /* --- Vista SOLO SUBIDA (cuando se abre con #subir) --- */
 .up-only header,.up-only #pantalla,.up-only #ajustes{display:none!important}
 .up-only main{max-width:520px;padding:24px 16px}
@@ -83,6 +90,8 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .up-only .hero{display:grid;gap:8px;justify-items:center;text-align:center;margin-bottom:10px}
 .up-only h1{font-size:22px}
 .up-only .note{font-size:12px;color:#cbd5e1}
+.fileline{display:flex;align-items:center;gap:10px}
+.filehint{font-size:12px;color:#aab3c5}
 </style>
 </head>
 <body>
@@ -195,7 +204,17 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Tamaño QR (%)</label><input id="qrPct" type="number" min="20" max="80" value="58"></div>
 
           <hr style="border-color:rgba(255,255,255,.12)">
-          <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Logo (PNG/JPG/SVG/WEBP)</label><input id="logoFile" type="file" accept="image/*,.svg,.webp,.avif"></div>
+          <!-- LOGO: botón seleccionar + nombre -->
+          <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
+            <label style="min-width:140px">Logo</label>
+            <div class="fileline">
+              <button id="btnPickLogo" class="btn" type="button">Seleccionar archivo</button>
+              <span id="logoName" class="filehint">Ningún archivo seleccionado</span>
+            </div>
+            <!-- inputs ocultos -->
+            <input id="logoCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
+            <input id="logoGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
+          </div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Altura logo (vh)</label><input id="logoVH" type="number" min="6" max="40" value="18"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Posición logo</label>
             <select id="logoPos"><option value="center" selected>Centro</option><option value="top-left">Arriba izq.</option><option value="top-right">Arriba der.</option><option value="bottom-left">Abajo izq.</option><option value="bottom-right">Abajo der.</option></select>
@@ -205,14 +224,19 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <select id="logoBlend"><option value="normal" selected>Normal</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="lighten">Lighten</option><option value="darken">Darken</option></select>
           </div>
 
-          <!-- SUBIR ARTÍCULO con input + botón Subir -->
+          <!-- SUBIR ARTÍCULO -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Subir artículo</label>
-            <input id="artFile" type="file" accept="image/*,.svg,.webp,.avif">
-            <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
+            <div class="fileline">
+              <button id="btnPickArt" class="btn" type="button">Seleccionar archivo</button>
+              <span id="artName" class="filehint">Ningún archivo seleccionado</span>
+              <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
+            </div>
+            <input id="artCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
+            <input id="artGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
-          <div class="small">Se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
+          <div class="small">El artículo se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
         </div>
       </div>
     </div>
@@ -225,10 +249,19 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
         <h1>Subí tu foto 📤</h1>
         <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
       </div>
+
+      <!-- Elegir archivo (con chooser) -->
       <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
         <label style="min-width:120px">Archivo</label>
-        <input id="fileUp" type="file" accept="image/*,.svg,.webp,.avif,.gif">
+        <div class="fileline">
+          <button id="btnPickUp" class="btn" type="button">Seleccionar archivo</button>
+          <span id="upName" class="filehint">Ningún archivo seleccionado</span>
+        </div>
+        <!-- inputs ocultos -->
+        <input id="fileUpCam" type="file" accept="image/*,.svg,.webp,.avif,.gif" capture="environment" class="hidden">
+        <input id="fileUpGal" type="file" accept="image/*,.svg,.webp,.avif,.gif" class="hidden">
       </div>
+
       <div class="row" style="justify-content:flex-end;display:flex;margin-top:10px">
         <button id="btnUp" class="btn" type="button">Subir</button>
       </div>
@@ -249,11 +282,33 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   </div>
 </div>
 
+<!-- Mini chooser Cámara/Galería reutilizable -->
+<div id="chooser">
+  <div class="box">
+    <h3>¿De dónde tomamos la imagen?</h3>
+    <div class="row">
+      <button id="chCam" class="btn" type="button">Cámara</button>
+      <button id="chGal" class="btn" type="button">Galería</button>
+      <button id="chCancel" class="btn" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 /* =================== UTILIDADES BÁSICAS =================== */
 const $ = (s)=>document.querySelector(s);
 const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
 const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
+
+/* Chooser genérico (cámara o galería) */
+let chooserResolve = null;
+function openChooser(){
+  return new Promise((res)=>{ chooserResolve=res; $("#chooser").style.display="flex"; });
+}
+function closeChooser(){ $("#chooser").style.display="none"; chooserResolve=null; }
+$("#chCancel").onclick = ()=>{ chooserResolve?.(null); closeChooser(); };
+$("#chCam").onclick    = ()=>{ chooserResolve?.("cam"); closeChooser(); };
+$("#chGal").onclick    = ()=>{ chooserResolve?.("gal"); closeChooser(); };
 
 /* Tabs */
 function switchTab(id){
@@ -322,22 +377,38 @@ function applyTheme(){
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* Logo */
-$("#logoFile")?.addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; if(!f) return; ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
+/* Pickers con chooser (Logo / Artículo / Upload) */
+async function chooseInto(hiddenCam, hiddenGal){
+  const sel = await openChooser();
+  if(sel==="cam") hiddenCam.click();
+  else if(sel==="gal") hiddenGal.click();
+}
+let selectedLogoFile=null, selectedArtFile=null, selectedUpFile=null;
+
+$("#btnPickLogo")?.addEventListener("click", ()=>chooseInto($("#logoCam"), $("#logoGal")));
+$("#logoCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
+$("#logoGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
+
 ["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{
   const el=$("#"+id); if(!el) return;
   el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
 });
 
-/* Subir ARTÍCULO (input + botón) */
+/* ARTÍCULO */
+$("#btnPickArt")?.addEventListener("click", ()=>chooseInto($("#artCam"), $("#artGal")));
+$("#artCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
+$("#artGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
+
 $("#btnArtUpload")?.addEventListener("click", ()=>{
-  const f = $("#artFile")?.files?.[0];
+  const f = selectedArtFile;
   if(!f){ toast("Elegí una imagen para el artículo"); return; }
   const url = URL.createObjectURL(f);
   const id  = "art_"+Date.now();
   S.arts = S.arts || [];
   S.arts.push({ id, url, pos:"top-left", sizeVH:18, alpha:100, offX:0, offY:0, scale:100 });
-  persist(); layoutAll(); $("#artFile").value="";
+  persist(); layoutAll();
+  if(edit) bindSelectables(true);
+  selectedArtFile=null; $("#artName").textContent="Ningún archivo seleccionado";
   toast("Artículo subido ✅");
 });
 
@@ -407,7 +478,10 @@ function getOffsets(key){
   if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}};
   if(key.startsWith("art:")){
     const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
-    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};
+    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{
+      const j=T.arts.findIndex(z=>z.id===id);
+      if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }
+    }};
   }
   return {x:0,y:0,sc:100,set:()=>{}};
 }
@@ -564,7 +638,7 @@ applyInitial();
 /* Reset */
 $("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
 
-/* =================== FIREBASE EN SEGUNDO PLANO =================== */
+/* =================== FIREBASE =================== */
 let fb = { ok:false };
 async function initFirebase(){
   try{
@@ -604,18 +678,14 @@ async function initFirebase(){
         ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
       }
     });
-    fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","desc"), fb.limit(1)), (snap)=>{
-      const docs=[]; snap.forEach(d=>docs.push(d.data()));
-      if(!docs.length) return;
-      const last=docs[0].url;
-      const ph=$("#photo"), box=$("#qrBox");
-      const bust = last + (last.includes("?") ? "&" : "?") + "t=" + Date.now();
-      ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
-    });
 
-    /* SUBIR FOTO (con input + botón “Subir”) */
+    /* SUBIR FOTO (elegida por el usuario) */
+    $("#btnPickUp")?.addEventListener("click", ()=>chooseInto($("#fileUpCam"), $("#fileUpGal")));
+    $("#fileUpCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
+    $("#fileUpGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
+
     $("#btnUp")?.addEventListener("click", async ()=>{
-      const f=$("#fileUp")?.files?.[0];
+      const f=selectedUpFile;
       if(!f){ toast("Elegí un archivo primero"); return; }
       try{
         const name=`${Date.now()}_${(f.name||"foto").replace(/\s+/g,"_")}`;
@@ -623,9 +693,9 @@ async function initFirebase(){
         await fb.uploadBytes(ref,f);
         const url=await fb.getDownloadURL(ref);
         await fb.addDoc(col,{url,createdAt:fb.serverTimestamp()});
-        $("#fileUp").value="";
+        selectedUpFile=null; $("#upName").textContent="Ningún archivo seleccionado";
         toast("Foto subida ✅");
-      }catch(e){ console.error(e); toast("Error al subir"); }
+      }catch(e){ console.error(e); toast(e?.code==='permission-denied'?'Permiso denegado 🔒':'Error al subir'); }
     });
 
   }catch(err){
