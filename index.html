@@ -212,7 +212,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <select id="logoBlend"><option value="normal" selected>Normal</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="lighten">Lighten</option><option value="darken">Darken</option></select>
           </div>
 
-          <!-- SUBIR ARTÍCULO (sin botón agregar) -->
+          <!-- SUBIR ARTÍCULO (pregunta y agrega directo) -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Subir artículo</label>
@@ -274,26 +274,12 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 </div>
 
 <script type="module">
-/* ===== Firebase (fotos) ===== */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
-  authDomain: "qr-proyector.firebaseapp.com",
-  projectId: "qr-proyector",
-  storageBucket: "qr-proyector.appspot.com",
-  messagingSenderId: "1056308881873",
-  appId: "1:1056308881873:web:c48321a62c1597f3ffd8f0",
-  measurementId: "G-7634GLJM1F"
-};
-
+/* =================== UTILIDADES BÁSICAS (SIEMPRE ACTIVAS) =================== */
 const $ = (s)=>document.querySelector(s);
-const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1400);};
+const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
 const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
 
-/* ===== Tabs habilitadas ===== */
+/* Tabs */
 function switchTab(id){
   document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
   document.querySelector(`[data-tab="${id}"]`).classList.add("active");
@@ -303,41 +289,18 @@ function switchTab(id){
 }
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
 
-/* ===== Sala / modo subida ===== */
+/* Sala / modo subida */
 const params = new URLSearchParams(location.search);
 const uploadMode = (location.hash === "#subir");
 let room = params.get("r") || localStorage.getItem("qr:sala") || (Math.random().toString(36).slice(2,8)).toUpperCase();
 localStorage.setItem("qr:sala", room);
-
-/* Si es modo subida, mostrar solo el panel de subida */
-if(uploadMode){
-  document.body.classList.add("up-only");
-  $("#upload").classList.remove("hidden");
-}else{
-  $("#pantalla").classList.remove("hidden");
-}
-
+if(uploadMode){ document.body.classList.add("up-only"); $("#upload").classList.remove("hidden"); }
+else{ $("#pantalla").classList.remove("hidden"); }
 $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
 
-/* ===== Firebase init y refs ===== */
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const st  = getStorage(app);
-const colPhotos = collection(db, `rooms/${room}/photos`);
-
-/* ===== Helpers QR (usa tu método con imagen remota) ===== */
-function qrImg(url, size){
-  const i=new Image(); i.alt="QR";
-  i.src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=0&data=${encodeURIComponent(url)}`;
-  i.style.width="100%"; i.style.height="100%"; i.style.imageRendering="pixelated";
-  return i;
-}
-function buildUploadURL(){
-  const url=new URL(location.href);
-  url.searchParams.set("r", room);
-  url.hash="#subir";
-  return url.toString();
-}
+/* QR helper: SIEMPRE disponible */
+function buildUploadURL(){ const url=new URL(location.href); url.searchParams.set("r", room); url.hash="#subir"; return url.toString(); }
+function qrImg(url, size){ const i=new Image(); i.alt="QR"; i.src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=0&data=${encodeURIComponent(url)}`; i.style.width="100%"; i.style.height="100%"; i.style.imageRendering="pixelated"; return i; }
 function layoutQR(box, viewer, scale=1){
   const pct = Math.min(80,Math.max(20, Number($("#qrPct").value||58)));
   const side = Math.floor(Math.min(viewer.clientWidth,viewer.clientHeight) * pct / 100 * scale);
@@ -345,16 +308,16 @@ function layoutQR(box, viewer, scale=1){
   box.innerHTML=""; box.appendChild(qrImg(buildUploadURL(), side));
 }
 
-/* ===== FX (placeholder) ===== */
+/* FX placeholder */
 class FX{
   constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
   resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0);}
   loop(){ const {ctx}=this; ctx.clearRect(0,0,this.cv.width,this.cv.height); requestAnimationFrame(()=>this.loop()); }
 }
-const fxMain = new FX($("#fxMain"), $("#viewer"));
-const fxPrev = new FX($("#fxPrev"), $("#viewerPrev"));
+new FX($("#fxMain"), $("#viewer"));
+new FX($("#fxPrev"), $("#viewerPrev"));
 
-/* ===== Estado persistente S + temporal T ===== */
+/* Estado */
 const DEFAULTS = JSON.parse(localStorage.getItem("qr:settings") || "{}");
 const S = Object.assign({
   title:"¡Subí tu foto con el QR!", subText:"Escaneá y subí 📲", font:"Poppins",
@@ -365,11 +328,9 @@ const S = Object.assign({
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
   arts:[]
 }, DEFAULTS);
-let T = null;
-function persist(){ localStorage.setItem("qr:settings", JSON.stringify(S)); }
-const ST = ()=> T || S;
+let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
-/* ===== Inputs básicos ===== */
+/* Inputs de tema */
 function applyTheme(){
   document.documentElement.style.setProperty('--bg', $("#bg").value);
   document.documentElement.style.setProperty('--text', $("#tx").value);
@@ -388,7 +349,7 @@ $("#logoFile").addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; i
   el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
 });
 
-/* ===== SUBIR ARTÍCULO: pregunta Cámara/Galería y agrega directo ===== */
+/* Subir ARTÍCULO (Cámara/Galería) */
 const sheet=$("#sheet"), optCam=$("#optCam"), optGal=$("#optGal"), optCancel=$("#optCancel"), sheetTitle=$("#sheetTitle");
 function askSource(title="Elegí el origen"){
   sheetTitle.textContent=title; sheet.style.display="block";
@@ -414,7 +375,7 @@ $("#btnArtAsk")?.addEventListener("click", async ()=>{
   input.click();
 });
 
-/* ===== Layout ===== */
+/* Layout */
 function placeByPos(el,pos){
   const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
   if(pos==="top-left"){el.style.top=m;el.style.left=m}
@@ -423,10 +384,7 @@ function placeByPos(el,pos){
   else if(pos==="bottom-right"){el.style.bottom=m;el.style.right=m}
   else {el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%)";}
 }
-function setTS(el, xPct, yPct, scale){
-  el.style.transformOrigin="center center";
-  el.style.transform=`translate(${xPct}%, ${yPct}%) scale(${(scale||100)/100})`;
-}
+function setTS(el, xPct, yPct, scale){ el.style.transformOrigin="center center"; el.style.transform=`translate(${xPct}%, ${yPct}%) scale(${(scale||100)/100})`; }
 function layoutViewer(where){
   const s = ST();
   const viewer = where==="main" ? $("#viewer") : $("#viewerPrev");
@@ -438,7 +396,7 @@ function layoutViewer(where){
   const SCALE  = (where==="prev") ? .7 : 1;
 
   title.textContent=s.title; sub.textContent=s.subText;
-  title.style.color=s.text; sub.style.color=s.text; viewer.style.background=s.bg;
+  title.style.color=s.text;  sub.style.color=s.text;  viewer.style.background=s.bg;
 
   layoutQR(qrBox, viewer, SCALE);
   setTS(qrBox, s.qrOffX||0, s.qrOffY||0, (s.qrScale||100)*(where==="prev"?SCALE*100:100)/100);
@@ -460,11 +418,11 @@ function layoutViewer(where){
   });
 }
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
+window.addEventListener("resize", layoutAll);
 
-/* ===== Edición: arrastre + suelta + BBox/handles ===== */
+/* Edición con arrastre y BBox */
 let edit=false, dragging=false, dragEl=null, selectedEl=null, startX=0, startY=0, baseX=0, baseY=0;
 const bbox=$("#bbox");
-
 function getKey(el){
   if(el?.id==="title") return "title";
   if(el?.id==="sub")   return "sub";
@@ -480,35 +438,29 @@ function getOffsets(key){
   if(key==="qr")    return {x:s.qrOffX||0,y:s.qrOffY||0,sc:s.qrScale||100,set:(x,y,sc)=>{T.qrOffX=x;T.qrOffY=y;if(sc!=null)T.qrScale=sc;}};
   if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}};
   if(key.startsWith("art:")){
-    const id=key.split(":")[1]; const idx=(s.arts||[]).findIndex(a=>a.id===id); const a= idx>-1? s.arts[idx] : {offX:0,offY:0,scale:100};
+    const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
     return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};
   }
   return {x:0,y:0,sc:100,set:()=>{}};
 }
-
 function bindSelectables(on){
   const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),...$("#artsMain").querySelectorAll(".art")];
   els.forEach(el=>{ if(!el) return; el.style.pointerEvents = on ? "auto" : "none"; if(on){ el.addEventListener("pointerdown", onDown); } else { el.removeEventListener("pointerdown", onDown); }});
 }
-
 function onDown(e){
   if(!edit) return;
   dragEl=e.currentTarget; selectedEl=dragEl; dragging=true;
   dragEl.setPointerCapture?.(e.pointerId);
   document.querySelectorAll(".is-sel").forEach(n=>n.classList.remove("is-sel"));
   dragEl.classList.add("is-sel");
-
   const st=getOffsets(getKey(dragEl));
-  baseX=st.x||0; baseY=st.y||0;
-  startX=e.clientX; startY=e.clientY;
-
+  baseX=st.x||0; baseY=st.y||0; startX=e.clientX; startY=e.clientY;
   showBBox(dragEl);
   window.addEventListener("pointermove", onMove);
   window.addEventListener("click", onGlobalClickOnce, {once:true});
   window.addEventListener("pointerup", onUp, {once:true});
   window.addEventListener("pointercancel", onUp, {once:true});
 }
-
 function onMove(e){
   if(!dragging || !dragEl) return;
   const safe=$("#viewer .safe").getBoundingClientRect();
@@ -520,7 +472,6 @@ function onMove(e){
   dragEl.style.transform=`translate(${nx}%, ${ny}%) scale(${sc})`;
   positionBBox(dragEl);
 }
-
 function finishDrop(){
   if(!dragEl) return;
   const style=dragEl.style.transform || getComputedStyle(dragEl).transform;
@@ -536,16 +487,13 @@ function finishDrop(){
   const scMatch=/scale\(([\d.]+)\)/.exec(style);
   const sc = scMatch ? Math.round(parseFloat(scMatch[1])*100) : getOffsets(getKey(dragEl)).sc||100;
   getOffsets(getKey(dragEl)).set(xPct,yPct,sc);
-
-  dragEl.classList.remove("is-sel");
-  dragEl=null; dragging=false;
-  window.removeEventListener("pointermove", onMove);
-  hideBBox();
+  dragEl.classList.remove("is-sel"); dragEl=null; dragging=false;
+  window.removeEventListener("pointermove", onMove); hideBBox();
 }
 function onUp(){ finishDrop(); }
 function onGlobalClickOnce(){ finishDrop(); }
 
-/* ==== BBox / Handles ==== */
+/* BBox / Handles */
 let resizing=false, resizeDir="", startScale=100, startWH={w:0,h:0};
 function showBBox(el){ bbox.style.display="block"; positionBBox(el); }
 function hideBBox(){ bbox.style.display="none"; }
@@ -560,12 +508,10 @@ bbox.querySelectorAll(".handle").forEach(h=>{
   h.addEventListener("pointerdown",(e)=>{
     if(!edit) return;
     e.stopPropagation(); e.preventDefault();
-    const target = selectedEl;
-    if(!target) return;
+    const target = selectedEl; if(!target) return;
     dragEl = target;
     const k=getKey(dragEl); const st=getOffsets(k);
-    startScale=st.sc||100;
-    startWH={w:dragEl.getBoundingClientRect().width, h:dragEl.getBoundingClientRect().height};
+    startScale=st.sc||100; startWH={w:dragEl.getBoundingClientRect().width, h:dragEl.getBoundingClientRect().height};
     startX=e.clientX; startY=e.clientY;
     resizing=true; resizeDir=e.currentTarget.dataset.dir;
     window.addEventListener("pointermove", onResizeMove);
@@ -573,7 +519,6 @@ bbox.querySelectorAll(".handle").forEach(h=>{
     window.addEventListener("pointercancel", endResize, {once:true});
   });
 });
-
 function onResizeMove(e){
   if(!resizing || !dragEl) return;
   const dx=e.clientX-startX, dy=e.clientY-startY;
@@ -585,70 +530,11 @@ function onResizeMove(e){
   const tx=parseFloat(tr[1]||0), ty=parseFloat(tr[2]||0);
   dragEl.style.transform=`translate(${tx}%, ${ty}%) scale(${newScale/100})`;
   positionBBox(dragEl);
-  const k=getKey(dragEl); const st=getOffsets(k);
-  st.set(st.x, st.y, newScale);
+  const k=getKey(dragEl); const st=getOffsets(k); st.set(st.x, st.y, newScale);
 }
 function endResize(){ resizing=false; }
 
-/* ===== Fotos ===== */
-let photos=[];
-onSnapshot(query(colPhotos, orderBy("createdAt","asc")), (snap)=>{
-  photos=[]; snap.forEach(d=>photos.push(d.data()));
-  $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
-  const r=$("#rail"); r.innerHTML=""; photos.forEach((p)=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; r.appendChild(im); });
-  const ph=$("#photo"), box=$("#qrBox");
-  if(!photos.length){ ph.style.display="none"; box.parentElement.style.display="grid"; }
-  else{ const last=photos[photos.length-1].url; ph.src=last; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; }; }
-});
-
-/* ===== Subir FOTO (Cámara/Galería) ===== */
-async function performUpload(file){
-  const name=`${Date.now()}_${(file.name||"foto").replace(/\s+/g,"_")}`;
-  const ref=sRef(st,`rooms/${room}/photos/${name}`);
-  await uploadBytes(ref,file);
-  const url=await getDownloadURL(ref);
-  await addDoc(colPhotos,{url,createdAt:serverTimestamp()});
-  toast("Foto subida ✅");
-}
-function openSheet(title){ sheetTitle.textContent=title; sheet.style.display="block"; }
-function closeSheet(){ sheet.style.display="none"; }
-function chooseSource(){ return new Promise(res=>{ openSheet("¿Desde dónde querés subir la foto?"); const done=(v)=>{ closeSheet(); res(v); }; optCam.onclick=()=>done("camera"); optGal.onclick=()=>done("gallery"); optCancel.onclick=()=>done(null); sheet.onclick=(e)=>{ if(e.target===sheet) done(null); }; }); }
-
-$("#btnUp")?.addEventListener("click", async ()=>{
-  const choice = await chooseSource();
-  if(!choice) return;
-  const input = choice==="camera" ? $("#fileUpCam") : $("#fileUpGal");
-  input.value="";
-  input.onchange = async (ev)=>{
-    const f=ev.target.files?.[0]; if(!f) return;
-    try{ await performUpload(f); }catch(e){ console.error(e); toast("Error al subir"); }
-  };
-  input.click();
-});
-
-/* ===== Modal QR / Fullscreen / Atajos ===== */
-const modal=$("#qrModal"), stage=$("#qrStage"), qrBig=$("#qrBig");
-function openQR(){ if(location.hash==="#subir") return;
-  modal.style.display="block";
-  const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66);
-  qrBig.innerHTML=""; qrBig.appendChild(qrImg(buildUploadURL(), s));
-  stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—";
-}
-function closeQR(){ modal.style.display="none"; if(isFS()) exitFS(); }
-$("#btnQR")?.addEventListener("click", openQR);
-$("#btnQRModal")?.addEventListener("click", openQR);
-modal?.addEventListener("click",(e)=>{ if(e.target===modal) closeQR(); });
-$("#btnFull")?.addEventListener("click", ()=>{ if(isFS()) exitFS(); else enterFS($("#viewer")); });
-
-document.addEventListener("keydown",(e)=>{
-  if(["KeyF","KeyQ","Escape","KeyE"].includes(e.code)) e.preventDefault();
-  if(e.code==="KeyF"){ if(isFS()) exitFS(); else enterFS($("#viewer")); }
-  if(e.code==="KeyQ"){ openQR(); }
-  if(e.code==="KeyE"){ setEdit(!edit); }
-  if(e.code==="Escape"){ if(edit){ setEdit(false); } else if(isFS()) exitFS(); }
-},{capture:true,passive:false});
-
-/* ===== Modo edición ===== */
+/* Modo edición toggles */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 function setEdit(on){
   if(on===edit) return;
@@ -661,6 +547,7 @@ function setEdit(on){
     bindSelectables(true);
   }else{
     hideBBox();
+    T && Object.assign(S, T);
     T=null; dragging=false; dragEl=null; selectedEl=null; resizing=false;
     $("#viewer").classList.remove("select-mode");
     $("#btnEdit").classList.remove("hidden"); $("#btnSave").classList.add("hidden");
@@ -669,9 +556,30 @@ function setEdit(on){
   }
 }
 $("#btnEdit").addEventListener("click",()=>setEdit(true));
-$("#btnSave").addEventListener("click",()=>{ if(T){ Object.assign(S, T); persist(); T=null; } setEdit(false); toast("Cambios guardados ✅"); });
+$("#btnSave").addEventListener("click",()=>{ setEdit(false); toast("Cambios guardados ✅"); });
 
-/* ===== Inicial ===== */
+/* Modal QR / Fullscreen / Atajos */
+const modal=$("#qrModal"), stage=$("#qrStage"), qrBig=$("#qrBig");
+function openQR(){ if(location.hash==="#subir") return;
+  modal.style.display="block";
+  const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66);
+  qrBig.innerHTML=""; qrBig.appendChild(qrImg(buildUploadURL(), s));
+  stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—";
+}
+function closeQR(){ modal.style.display="none"; if(isFS()) exitFS(); }
+$("#btnQR")?.addEventListener("click", openQR);
+$("#btnQRModal")?.addEventListener("click", openQR);
+modal?.addEventListener("click",(e)=>{ if(e.target===modal) closeQR(); });
+$("#btnFull")?.addEventListener("click", ()=>{ if(isFS()) exitFS(); else enterFS($("#viewer")); });
+document.addEventListener("keydown",(e)=>{
+  if(["KeyF","KeyQ","Escape","KeyE"].includes(e.code)) e.preventDefault();
+  if(e.code==="KeyF"){ if(isFS()) exitFS(); else enterFS($("#viewer")); }
+  if(e.code==="KeyQ"){ openQR(); }
+  if(e.code==="KeyE"){ setEdit(!edit); }
+  if(e.code==="Escape"){ if(edit){ setEdit(false); } else if(isFS()) exitFS(); }
+},{capture:true,passive:false});
+
+/* Inicial UI (QR sale ya mismo) */
 function applyInitial(){
   $("#inpTitle").value=S.title; $("#inpSub").value=S.subText;
   $("#fontSel").value=S.font; $("#bg").value=S.bg; $("#tx").value=S.text; $("#qrPct").value=S.qrPct;
@@ -680,8 +588,90 @@ function applyInitial(){
 }
 applyInitial();
 
-/* ===== Reset rápido ===== */
+/* Reset */
 $("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
+
+/* =================== FIREBASE: SE CARGA EN SEGUNDO PLANO =================== */
+let fb = { ok:false };
+async function initFirebase(){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    const { getStorage, ref: sRef, uploadBytes, getDownloadURL } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
+      authDomain: "qr-proyector.firebaseapp.com",
+      projectId: "qr-proyector",
+      storageBucket: "qr-proyector.appspot.com",
+      messagingSenderId: "1056308881873",
+      appId: "1:1056308881873:web:c48321a62c1597f3ffd8f0",
+      measurementId: "G-7634GLJM1F"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    const st  = getStorage(app);
+    const col = collection(db, `rooms/${room}/photos`);
+    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, sRef, uploadBytes, getDownloadURL, st, col };
+
+    /* Rail completo */
+    fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
+      const photos=[]; snap.forEach(d=>photos.push(d.data()));
+      $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
+      const r=$("#rail"); r.innerHTML="";
+      photos.forEach((p)=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; r.appendChild(im); });
+      const ph=$("#photo"), box=$("#qrBox");
+      if(!photos.length){ ph.style.display="none"; box.parentElement.style.display="grid"; }
+      else{
+        const last=photos[photos.length-1].url;
+        const bust = last + (last.includes("?") ? "&" : "?") + "t=" + Date.now();
+        ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
+      }
+    });
+
+    /* Última en vivo (robusto a timestamps pendientes) */
+    fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","desc"), fb.limit(1)), (snap)=>{
+      const docs=[]; snap.forEach(d=>docs.push(d.data()));
+      if(!docs.length) return;
+      const last=docs[0].url;
+      const ph=$("#photo"), box=$("#qrBox");
+      const bust = last + (last.includes("?") ? "&" : "?") + "t=" + Date.now();
+      ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
+    });
+
+    /* Subir FOTO (pregunta cámara/galería) */
+    function chooseSource(){ return new Promise(res=>{ $("#sheetTitle").textContent="¿Desde dónde querés subir la foto?"; $("#sheet").style.display="block";
+      const done=(v)=>{ $("#sheet").style.display="none"; res(v); };
+      $("#optCam").onclick=()=>done("camera"); $("#optGal").onclick=()=>done("gallery"); $("#optCancel").onclick=()=>done(null);
+      $("#sheet").onclick=(e)=>{ if(e.target.id==="sheet") done(null); }; });
+    }
+    async function performUpload(file){
+      const name=`${Date.now()}_${(file.name||"foto").replace(/\s+/g,"_")}`;
+      const ref=fb.sRef(fb.st,`rooms/${room}/photos/${name}`);
+      await fb.uploadBytes(ref,file);
+      const url=await fb.getDownloadURL(ref);
+      await fb.addDoc(fb.col,{url,createdAt:fb.serverTimestamp()});
+      toast("Foto subida ✅");
+      setTimeout(()=>layoutAll(), 300);
+    }
+    $("#btnUp")?.addEventListener("click", async ()=>{
+      const choice = await chooseSource();
+      if(!choice) return;
+      const input = choice==="camera" ? $("#fileUpCam") : $("#fileUpGal");
+      input.value="";
+      input.onchange = async (ev)=>{ const f=ev.target.files?.[0]; if(!f) return; try{ await performUpload(f); }catch(e){ console.error(e); toast("Error al subir"); } };
+      input.click();
+    });
+
+  }catch(err){
+    console.error("Firebase no inicializado:", err);
+    toast("Modo sin conexión a Firebase (QR y edición OK)");
+  }
+}
+initFirebase();
 </script>
 </body>
 </html>
