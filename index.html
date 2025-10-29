@@ -45,8 +45,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 
 /* Modo edición */
 .select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode #logo,.select-mode .art{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
-#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;
-  padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
+#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
 .select-mode #editChip{display:block}
 #editHint{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;z-index:7;font-size:12px}
 .small{font-size:12px;color:#cbd5e1}
@@ -68,7 +67,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .rail{display:flex;gap:8px;overflow:auto;padding-bottom:6px}
 .rail img{width:88px;height:62px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.18)}
 
-/* Preview en Ajustes (mini) */
+/* Preview mini en Ajustes */
 #viewerPrev{max-width:340px}
 #viewerPrev .layer-center{transform:scale(.7);transform-origin:center}
 
@@ -76,14 +75,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Chooser mini modal */
-#chooser{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;z-index:70;align-items:center;justify-content:center}
-#chooser .box{background:#0f172a;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px;min-width:280px}
-#chooser .box h3{margin:0 0 6px 0;font-size:16px}
-#chooser .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
-#chooser .box .btn{background:#fff}
-
-/* --- Vista SOLO SUBIDA (#subir) --- */
+/* Vista SOLO SUBIDA (#subir) */
 .up-only header,.up-only #pantalla,.up-only #ajustes{display:none!important}
 .up-only main{max-width:520px;padding:24px 16px}
 .up-only .card{border-radius:18px}
@@ -159,7 +151,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
     </div>
   </section>
 
-  <!-- ===== AJUSTES (con PREVIEW) ===== -->
+  <!-- ===== AJUSTES ===== -->
   <section id="ajustes" class="pane hidden">
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between;align-items:center">
@@ -207,12 +199,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <!-- LOGO -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Logo</label>
-            <div class="fileline">
-              <button id="btnPickLogo" class="btn" type="button">Seleccionar archivo</button>
-              <span id="logoName" class="filehint">Ningún archivo seleccionado</span>
-            </div>
-            <input id="logoCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
-            <input id="logoGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
+            <input id="logoFile" type="file" accept="image/*,.svg,.webp,.avif" />
           </div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Altura logo (vh)</label><input id="logoVH" type="number" min="6" max="40" value="18"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Posición logo</label>
@@ -227,13 +214,8 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Subir artículo</label>
-            <div class="fileline">
-              <button id="btnPickArt" class="btn" type="button">Seleccionar archivo</button>
-              <span id="artName" class="filehint">Ningún archivo seleccionado</span>
-              <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
-            </div>
-            <input id="artCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
-            <input id="artGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
+            <input id="artFile" type="file" accept="image/*,.svg,.webp,.avif" />
+            <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
           </div>
           <div class="small">El artículo se agrega como decoración movible; editá su posición/tamaño en “Editar (E)”.</div>
         </div>
@@ -249,14 +231,10 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
         <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
       </div>
 
+      <!-- Input VISIBLE (como tu captura) -->
       <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
         <label style="min-width:120px">Archivo</label>
-        <div class="fileline">
-          <button id="btnPickUp" class="btn" type="button">Seleccionar archivo</button>
-          <span id="upName" class="filehint">Ningún archivo seleccionado</span>
-        </div>
-        <input id="fileUpCam" type="file" accept="image/*,.svg,.webp,.avif,.gif" capture="environment" class="hidden">
-        <input id="fileUpGal" type="file" accept="image/*,.svg,.webp,.avif,.gif" class="hidden">
+        <input id="fileUp" type="file" accept="image/*,.svg,.webp,.avif,.gif">
       </div>
 
       <div class="row" style="justify-content:flex-end;display:flex;margin-top:10px">
@@ -279,31 +257,11 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   </div>
 </div>
 
-<!-- Mini chooser Cámara/Galería -->
-<div id="chooser">
-  <div class="box">
-    <h3>¿De dónde tomamos la imagen?</h3>
-    <div class="row">
-      <button id="chCam" class="btn" type="button">Cámara</button>
-      <button id="chGal" class="btn" type="button">Galería</button>
-      <button id="chCancel" class="btn" type="button">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
-/* ===== Utilidades ===== */
+/* =================== Utilidades =================== */
 const $ = (s)=>document.querySelector(s);
-const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
+const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700);};
 const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
-
-/* Chooser */
-let chooserResolve=null;
-function openChooser(){ return new Promise(res=>{ chooserResolve=res; $("#chooser").style.display="flex"; }); }
-function closeChooser(){ $("#chooser").style.display="none"; chooserResolve=null; }
-$("#chCancel").onclick=()=>{ chooserResolve?.(null); closeChooser(); };
-$("#chCam").onclick=()=>{ chooserResolve?.("cam"); closeChooser(); };
-$("#chGal").onclick=()=>{ chooserResolve?.("gal"); closeChooser(); };
 
 /* Tabs */
 function switchTab(id){
@@ -370,150 +328,338 @@ function applyTheme(){
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* Pickers con chooser */
-async function chooseInto(hiddenCam, hiddenGal){ const sel=await openChooser(); if(sel==="cam") hiddenCam.click(); else if(sel==="gal") hiddenGal.click(); }
-let selectedLogoFile=null, selectedArtFile=null, selectedUpFile=null;
-
-$("#btnPickLogo")?.addEventListener("click", ()=>chooseInto($("#logoCam"), $("#logoGal")));
-$("#logoCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
-$("#logoGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
-
+/* Logo */
+$("#logoFile")?.addEventListener("change",(ev)=>{ const f=ev.target.files?.[0]; if(!f) return; ST().logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
 ["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{ const el=$("#"+id); if(!el) return; el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); }); });
 
-/* ARTÍCULO */
-$("#btnPickArt")?.addEventListener("click", ()=>chooseInto($("#artCam"), $("#artGal")));
-$("#artCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
-$("#artGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
-$("#btnArtUpload")?.addEventListener("click", ()=>{ const f=selectedArtFile; if(!f){ toast("Elegí una imagen para el artículo"); return; } const url=URL.createObjectURL(f); const id="art_"+Date.now(); S.arts=S.arts||[]; S.arts.push({id,url,pos:"top-left",sizeVH:18,alpha:100,offX:0,offY:0,scale:100}); persist(); layoutAll(); if(edit) bindSelectables(true); selectedArtFile=null; $("#artName").textContent="Ningún archivo seleccionado"; toast("Artículo subido ✅"); });
+/* Subir ARTÍCULO */
+$("#btnArtUpload")?.addEventListener("click", ()=>{
+  const f = $("#artFile")?.files?.[0];
+  if(!f){ toast("Elegí una imagen para el artículo"); return; }
+  const url = URL.createObjectURL(f);
+  const id  = "art_"+Date.now();
+  S.arts = S.arts || [];
+  S.arts.push({ id, url, pos:"top-left", sizeVH:18, alpha:100, offX:0, offY:0, scale:100 });
+  persist(); layoutAll();
+  toast("Artículo subido ✅");
+});
 
-/* Layout */
-function placeByPos(el,pos){ const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
+/* Layout principal (posiciones) */
+function placeByPos(el,pos){
+  const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
   if(pos==="top-left"){el.style.top=m;el.style.left=m}
   else if(pos==="top-right"){el.style.top=m;el.style.right=m}
   else if(pos==="bottom-left"){el.style.bottom=m;el.style.left=m}
   else if(pos==="bottom-right"){el.style.bottom=m;el.style.right=m}
-  else {el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%)";} }
-function setTS(el,xPct,yPct,scale){ el.style.transformOrigin="center center"; el.style.transform=`translate(${xPct}%, ${yPct}%) scale(${(scale||100)/100})`; }
+  else {el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%)";}
+}
+function setTS(el, xPct, yPct, scale){ el.style.transformOrigin="center center"; el.style.transform=`translate(${xPct}%, ${yPct}%) scale(${(scale||100)/100})`; }
 function layoutViewer(where){
-  const s=ST(); const viewer=where==="main"?$("#viewer"):$("#viewerPrev");
-  const title=where==="main"?$("#title"):$("#titlePrev"); const sub=where==="main"?$("#sub"):$("#subPrev");
-  const qrBox=where==="main"?$("#qrBox"):$("#qrPrev"); const logo=where==="main"?$("#logo"):$("#logoPrev");
-  const arts=where==="main"?$("#artsMain"):$("#artsPrev"); const SCALE=(where==="prev")?.7:1;
+  const s = ST();
+  const viewer = where==="main" ? $("#viewer") : $("#viewerPrev");
+  const title  = where==="main" ? $("#title") : $("#titlePrev");
+  const sub    = where==="main" ? $("#sub") : $("#subPrev");
+  const qrBox  = where==="main" ? $("#qrBox") : $("#qrPrev");
+  const logo   = where==="main" ? $("#logo") : $("#logoPrev");
+  const arts   = where==="main" ? $("#artsMain") : $("#artsPrev");
+  const SCALE  = (where==="prev") ? .7 : 1;
+
   if(!viewer) return;
-  title.textContent=s.title; sub.textContent=s.subText; title.style.color=s.text; sub.style.color=s.text; viewer.style.background=s.bg;
-  layoutQR(qrBox,viewer,SCALE); setTS(qrBox,s.qrOffX||0,s.qrOffY||0,(s.qrScale||100)*(where==="prev"?SCALE*100:100)/100);
-  setTS(title,s.titleOffX||0,s.titleOffY||0,(s.titleScale||100)*(where==="prev"?SCALE*100:100)/100);
-  setTS(sub,s.subOffX||0,s.subOffY||0,(s.subScale||100)*(where==="prev"?SCALE*100:100)/100);
+
+  title.textContent=s.title; sub.textContent=s.subText;
+  title.style.color=s.text;  sub.style.color=s.text;  viewer.style.background=s.bg;
+
+  layoutQR(qrBox, viewer, SCALE);
+  setTS(qrBox, s.qrOffX||0, s.qrOffY||0, (s.qrScale||100)*(where==="prev"?SCALE*100:100)/100);
+
+  setTS(title, s.titleOffX||0, s.titleOffY||0, (s.titleScale||100)*(where==="prev"?SCALE*100:100)/100);
+  setTS(sub,   s.subOffX||0,   s.subOffY||0,   (s.subScale||100)*(where==="prev"?SCALE*100:100)/100);
+
   if(s.logoUrl){ logo.src=s.logoUrl; logo.style.display="block"; } else { logo.style.display="none"; }
   const logoVH=(s.logoVH||18)*SCALE; logo.style.height=logoVH+"vh"; logo.style.opacity=(s.logoAlpha||100)/100; logo.style.mixBlendMode=s.logoBlend||"normal";
-  placeByPos(logo,s.logoPos||"center"); setTS(logo,s.logoOffX||0,s.logoOffY||0,(s.logoScale||100)*(where==="prev"?SCALE*100:100)/100);
-  arts.innerHTML=""; (s.arts||[]).forEach(a=>{ const im=new Image(); im.src=a.url; im.className="art"; im.style.height=((a.sizeVH||18)*SCALE)+"vh"; im.style.opacity=(a.alpha||100)/100; placeByPos(im,a.pos||"top-left"); arts.appendChild(im); setTS(im,a.offX||0,a.offY||0,(a.scale||100)); im.dataset.artId=a.id; });
+  placeByPos(logo,s.logoPos||"center");
+  setTS(logo, s.logoOffX||0, s.logoOffY||0, (s.logoScale||100)*(where==="prev"?SCALE*100:100)/100);
+
+  arts.innerHTML="";
+  (s.arts||[]).forEach(a=>{
+    const im=new Image(); im.src=a.url; im.className="art"; im.style.height=((a.sizeVH||18)*SCALE)+"vh"; im.style.opacity=(a.alpha||100)/100;
+    placeByPos(im,a.pos||"top-left"); arts.appendChild(im);
+    setTS(im, a.offX||0, a.offY||0, (a.scale||100));
+    im.dataset.artId=a.id;
+  });
 }
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
 window.addEventListener("resize", layoutAll);
 
-/* Edición */
+/* Edición con arrastre + redimensionado */
 let edit=false, dragging=false, dragEl=null, selectedEl=null, startX=0, startY=0, baseX=0, baseY=0;
 const bbox=$("#bbox");
-function getKey(el){ if(el?.id==="title")return"title"; if(el?.id==="sub")return"sub"; if(el?.id==="qrBox")return"qr"; if(el?.id==="logo")return"logo"; if(el?.classList?.contains("art"))return"art:"+el.dataset.artId; return""; }
-function getOffsets(key){ const s=ST();
-  if(key==="title") return {x:s.titleOffX||0,y:s.titleOffY||0,sc:s.titleScale||100,set:(x,y,sc)=>{T.titleOffX=x;T.titleOffY=y;if(sc!=null)T.titleScale=sc;}}
-  if(key==="sub")   return {x:s.subOffX||0,y:s.subOffY||0,sc:s.subScale||100,set:(x,y,sc)=>{T.subOffX=x;T.subOffY=y;if(sc!=null)T.subScale=sc;}}
-  if(key==="qr")    return {x:s.qrOffX||0,y:s.qrOffY||0,sc:s.qrScale||100,set:(x,y,sc)=>{T.qrOffX=x;T.qrOffY=y;if(sc!=null)T.qrScale=sc;}}
-  if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}}
-  if(key.startsWith("art:")){ const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
-    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}} }
-  return {x:0,y:0,sc:100,set:()=>{}} }
-function bindSelectables(on){ const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),...$("#artsMain").querySelectorAll(".art")]; els.forEach(el=>{ if(!el) return; el.style.pointerEvents=on?"auto":"none"; if(on){ el.addEventListener("pointerdown",onDown);} else { el.removeEventListener("pointerdown",onDown);} }); }
-function onDown(e){ if(!edit) return; dragEl=e.currentTarget; selectedEl=dragEl; dragging=true; dragEl.setPointerCapture?.(e.pointerId); document.querySelectorAll(".is-sel").forEach(n=>n.classList.remove("is-sel")); dragEl.classList.add("is-sel"); const st=getOffsets(getKey(dragEl)); baseX=st.x||0;baseY=st.y||0; startX=e.clientX;startY=e.clientY; showBBox(dragEl); window.addEventListener("pointermove",onMove); window.addEventListener("click",onGlobalClickOnce,{once:true}); window.addEventListener("pointerup",onUp,{once:true}); window.addEventListener("pointercancel",onUp,{once:true}); }
-function onMove(e){ if(!dragging||!dragEl) return; const safe=$("#viewer .safe").getBoundingClientRect(); const hw=safe.width/2, hh=safe.height/2; const dx=e.clientX-startX, dy=e.clientY-startY; const nx=baseX+(dx/hw)*100; const ny=baseY+(dy/hh)*100; const sc=(/scale\(([\d.]+)\)/.exec(getComputedStyle(dragEl).transform)?.[1]||1); dragEl.style.transform=`translate(${nx}%, ${ny}%) scale(${sc})`; positionBBox(dragEl); }
-function finishDrop(){ if(!dragEl) return; const style=dragEl.style.transform||getComputedStyle(dragEl).transform; const safe=$("#viewer .safe").getBoundingClientRect(); let xPct=baseX, yPct=baseY; const mPct=/translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform); if(mPct&&dragEl.style.transform.includes("%")){ xPct=parseFloat(mPct[1]||0); yPct=parseFloat(mPct[2]||0);} else { const mPx=/matrix\([^,]+,[^,]+,[^,]+,[^,]+,([-\d.]+),([-\d.]+)\)/.exec(getComputedStyle(dragEl).transform); if(mPx){ const px=parseFloat(mPx[1]||0), py=parseFloat(mPx[2]||0); xPct=(px/(safe.width/2))*100; yPct=(py/(safe.height/2))*100; } } const scMatch=/scale\(([\d.]+)\)/.exec(style); const sc=scMatch?Math.round(parseFloat(scMatch[1])*100):getOffsets(getKey(dragEl)).sc||100; getOffsets(getKey(dragEl)).set(xPct,yPct,sc); dragEl.classList.remove("is-sel"); dragEl=null; dragging=false; window.removeEventListener("pointermove",onMove); hideBBox(); }
-function onUp(){ finishDrop(); } function onGlobalClickOnce(){ finishDrop(); }
+function getKey(el){
+  if(el?.id==="title") return "title";
+  if(el?.id==="sub")   return "sub";
+  if(el?.id==="qrBox") return "qr";
+  if(el?.id==="logo")  return "logo";
+  if(el?.classList?.contains("art")) return "art:"+el.dataset.artId;
+  return "";
+}
+function getOffsets(key){
+  const s=ST();
+  if(key==="title") return {x:s.titleOffX||0,y:s.titleOffY||0,sc:s.titleScale||100,set:(x,y,sc)=>{T.titleOffX=x;T.titleOffY=y;if(sc!=null)T.titleScale=sc;}};
+  if(key==="sub")   return {x:s.subOffX||0,y:s.subOffY||0,sc:s.subScale||100,set:(x,y,sc)=>{T.subOffX=x;T.subOffY=y;if(sc!=null)T.subScale=sc;}};
+  if(key==="qr")    return {x:s.qrOffX||0,y:s.qrOffY||0,sc:s.qrScale||100,set:(x,y,sc)=>{T.qrOffX=x;T.qrOffY=y;if(sc!=null)T.qrScale=sc;}};
+  if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}};
+  if(key.startsWith("art:")){
+    const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
+    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};
+  }
+  return {x:0,y:0,sc:100,set:()=>{}};
+}
+function bindSelectables(on){
+  const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),...$("#artsMain").querySelectorAll(".art")];
+  els.forEach(el=>{ if(!el) return; el.style.pointerEvents = on ? "auto" : "none"; if(on){ el.addEventListener("pointerdown", onDown); } else { el.removeEventListener("pointerdown", onDown); }});
+}
+function onDown(e){
+  if(!edit) return;
+  dragEl=e.currentTarget; selectedEl=dragEl; dragging=true;
+  dragEl.setPointerCapture?.(e.pointerId);
+  document.querySelectorAll(".is-sel").forEach(n=>n.classList.remove("is-sel"));
+  dragEl.classList.add("is-sel");
+  const st=getOffsets(getKey(dragEl));
+  baseX=st.x||0; baseY=st.y||0; startX=e.clientX; startY=e.clientY;
+  showBBox(dragEl);
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("click", onGlobalClickOnce, {once:true});
+  window.addEventListener("pointerup", onUp, {once:true});
+  window.addEventListener("pointercancel", onUp, {once:true});
+}
+function onMove(e){
+  if(!dragging || !dragEl) return;
+  const safe=$("#viewer .safe").getBoundingClientRect();
+  const hw=safe.width/2, hh=safe.height/2;
+  const dx=e.clientX-startX, dy=e.clientY-startY;
+  const nx = baseX + (dx/hw)*100;
+  const ny = baseY + (dy/hh)*100;
+  const sc = (/scale\(([\d.]+)\)/.exec(getComputedStyle(dragEl).transform)?.[1]||1);
+  dragEl.style.transform=`translate(${nx}%, ${ny}%) scale(${sc})`;
+  positionBBox(dragEl);
+}
+function finishDrop(){
+  if(!dragEl) return;
+  const style=dragEl.style.transform || getComputedStyle(dragEl).transform;
+  const safe=$("#viewer .safe").getBoundingClientRect();
+  let xPct=baseX, yPct=baseY;
+  const mPct=/translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform);
+  if(mPct && dragEl.style.transform.includes("%")){
+    xPct=parseFloat(mPct[1]||0); yPct=parseFloat(mPct[2]||0);
+  }else{
+    const mPx=/matrix\([^,]+,[^,]+,[^,]+,[^,]+,([-\d.]+),([-\d.]+)\)/.exec(getComputedStyle(dragEl).transform);
+    if(mPx){ const px=parseFloat(mPx[1]||0), py=parseFloat(mPx[2]||0); xPct=(px/(safe.width/2))*100; yPct=(py/(safe.height/2))*100; }
+  }
+  const scMatch=/scale\(([\d.]+)\)/.exec(style);
+  const sc = scMatch ? Math.round(parseFloat(scMatch[1])*100) : getOffsets(getKey(dragEl)).sc||100;
+  getOffsets(getKey(dragEl)).set(xPct,yPct,sc);
+  dragEl.classList.remove("is-sel"); dragEl=null; dragging=false;
+  window.removeEventListener("pointermove", onMove); hideBBox();
+}
+function onUp(){ finishDrop(); }
+function onGlobalClickOnce(){ finishDrop(); }
+
+/* BBox */
 let resizing=false, resizeDir="", startScale=100, startWH={w:0,h:0};
-const bboxEl=$("#bbox"); function showBBox(el){ bboxEl.style.display="block"; positionBBox(el); } function hideBBox(){ bboxEl.style.display="none"; }
-function positionBBox(el){ const r=el.getBoundingClientRect(), host=$("#viewer").getBoundingClientRect(); bboxEl.style.left=(r.left-host.left)+"px"; bboxEl.style.top=(r.top-host.top)+"px"; bboxEl.style.width=r.width+"px"; bboxEl.style.height=r.height+"px"; }
-bboxEl.querySelectorAll(".handle").forEach(h=>{ h.addEventListener("pointerdown",(e)=>{ if(!edit) return; e.stopPropagation(); e.preventDefault(); const target=selectedEl; if(!target) return; dragEl=target; const k=getKey(dragEl); const st=getOffsets(k); startScale=st.sc||100; startWH={w:dragEl.getBoundingClientRect().width,h:dragEl.getBoundingClientRect().height}; startX=e.clientX; startY=e.clientY; resizing=true; resizeDir=e.currentTarget.dataset.dir; window.addEventListener("pointermove",onResizeMove); window.addEventListener("pointerup",endResize,{once:true}); window.addEventListener("pointercancel",endResize,{once:true}); }); });
-function onResizeMove(e){ if(!resizing||!dragEl) return; const dx=e.clientX-startX, dy=e.clientY-startY; const relX=(resizeDir.includes("e")?dx:resizeDir.includes("w")?-dx:0)/Math.max(40,startWH.w); const relY=(resizeDir.includes("s")?dy:resizeDir.includes("n")?-dy:0)/Math.max(40,startWH.h); const rel=(Math.abs(relX)>Math.abs(relY)?relX:relY); let newScale=Math.max(10,Math.min(400,Math.round((startScale*(1+rel))*1))); const tr=/translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform)||[0,0,0]; const tx=parseFloat(tr[1]||0), ty=parseFloat(tr[2]||0); dragEl.style.transform=`translate(${tx}%, ${ty}%) scale(${newScale/100})`; positionBBox(dragEl); const k=getKey(dragEl); const st=getOffsets(k); st.set(st.x,st.y,newScale); }
+const bboxEl=$("#bbox");
+function showBBox(el){ bboxEl.style.display="block"; positionBBox(el); }
+function hideBBox(){ bboxEl.style.display="none"; }
+function positionBBox(el){
+  const r=el.getBoundingClientRect(), host=$("#viewer").getBoundingClientRect();
+  bboxEl.style.left=(r.left-host.left)+"px";
+  bboxEl.style.top =(r.top -host.top )+"px";
+  bboxEl.style.width = r.width+"px";
+  bboxEl.style.height= r.height+"px";
+}
+bboxEl.querySelectorAll(".handle").forEach(h=>{
+  h.addEventListener("pointerdown",(e)=>{
+    if(!edit) return;
+    e.stopPropagation(); e.preventDefault();
+    const target = selectedEl; if(!target) return;
+    dragEl = target;
+    const k=getKey(dragEl); const st=getOffsets(k);
+    startScale=st.sc||100; startWH={w:dragEl.getBoundingClientRect().width, h:dragEl.getBoundingClientRect().height};
+    startX=e.clientX; startY=e.clientY;
+    resizing=true; resizeDir=e.currentTarget.dataset.dir;
+    window.addEventListener("pointermove", onResizeMove);
+    window.addEventListener("pointerup", endResize, {once:true});
+    window.addEventListener("pointercancel", endResize, {once:true});
+  });
+});
+function onResizeMove(e){
+  if(!resizing || !dragEl) return;
+  const dx=e.clientX-startX, dy=e.clientY-startY;
+  const relX = (resizeDir.includes("e")? dx : resizeDir.includes("w")? -dx : 0) / Math.max(40,startWH.w);
+  const relY = (resizeDir.includes("s")? dy : resizeDir.includes("n")? -dy : 0) / Math.max(40,startWH.h);
+  const rel  = (Math.abs(relX)>Math.abs(relY)? relX : relY);
+  let newScale = Math.max(10, Math.min(400, Math.round((startScale*(1+rel))*1)));
+  const tr = /translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform) || [0,0,0];
+  const tx=parseFloat(tr[1]||0), ty=parseFloat(tr[2]||0);
+  dragEl.style.transform=`translate(${tx}%, ${ty}%) scale(${newScale/100})`;
+  positionBBox(dragEl);
+  const k=getKey(dragEl); const st=getOffsets(k); st.set(st.x, st.y, newScale);
+}
 function endResize(){ resizing=false; }
+
+/* Modo edición */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
-function setEdit(on){ if(on===edit) return; edit=on; if(edit){ T=deepClone(S); $("#viewer").classList.add("select-mode"); $("#btnEdit").classList.add("hidden"); $("#btnSave").classList.remove("hidden"); $("#editHint").classList.remove("hidden"); $("#editChip").style.display="block"; bindSelectables(true); }else{ hideBBox(); T&&Object.assign(S,T); T=null; dragging=false; dragEl=null; selectedEl=null; resizing=false; $("#viewer").classList.remove("select-mode"); $("#btnEdit").classList.remove("hidden"); $("#btnSave").classList.add("hidden"); $("#editHint").classList.add("hidden"); $("#editChip").style.display="none"; bindSelectables(false); persist(); layoutAll(); } }
+function setEdit(on){
+  if(on===edit) return;
+  edit=on;
+  if(edit){
+    T = deepClone(S);
+    $("#viewer").classList.add("select-mode");
+    $("#btnEdit").classList.add("hidden"); $("#btnSave").classList.remove("hidden");
+    $("#editHint").classList.remove("hidden"); $("#editChip").style.display="block";
+    bindSelectables(true);
+  }else{
+    hideBBox();
+    T && Object.assign(S, T);
+    T=null; dragging=false; dragEl=null; selectedEl=null; resizing=false;
+    $("#viewer").classList.remove("select-mode");
+    $("#btnEdit").classList.remove("hidden"); $("#btnSave").classList.add("hidden");
+    $("#editHint").classList.add("hidden"); $("#editChip").style.display="none";
+    bindSelectables(false); persist(); layoutAll();
+  }
+}
 $("#btnEdit").addEventListener("click",()=>setEdit(true));
 $("#btnSave").addEventListener("click",()=>{ setEdit(false); toast("Cambios guardados ✅"); });
 
 /* Modal QR / Fullscreen / Atajos */
 const modal=$("#qrModal"), stage=$("#qrStage"), qrBig=$("#qrBig");
-function openQR(){ if(location.hash==="#subir") return; modal.style.display="block"; const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66); qrBig.innerHTML=""; qrBig.appendChild(qrImg(buildUploadURL(),s)); stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—"; }
+function openQR(){ if(location.hash==="#subir") return;
+  modal.style.display="block";
+  const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66);
+  qrBig.innerHTML=""; qrBig.appendChild(qrImg(buildUploadURL(), s));
+  stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—";
+}
 function closeQR(){ modal.style.display="none"; if(isFS()) exitFS(); }
 $("#btnQR")?.addEventListener("click", openQR);
 $("#btnQRModal")?.addEventListener("click", openQR);
 modal?.addEventListener("click",(e)=>{ if(e.target===modal) closeQR(); });
 $("#btnFull")?.addEventListener("click", ()=>{ if(isFS()) exitFS(); else enterFS($("#viewer")); });
-document.addEventListener("keydown",(e)=>{ if(["KeyF","KeyQ","Escape","KeyE"].includes(e.code)) e.preventDefault(); if(e.code==="KeyF"){ if(isFS()) exitFS(); else enterFS($("#viewer")); } if(e.code==="KeyQ"){ openQR(); } if(e.code==="KeyE"){ setEdit(!edit); } if(e.code==="Escape"){ if(edit){ setEdit(false);} else if(isFS()) exitFS(); } },{capture:true,passive:false});
+document.addEventListener("keydown",(e)=>{
+  if(["KeyF","KeyQ","Escape","KeyE"].includes(e.code)) e.preventDefault();
+  if(e.code==="KeyF"){ if(isFS()) exitFS(); else enterFS($("#viewer")); }
+  if(e.code==="KeyQ"){ openQR(); }
+  if(e.code==="KeyE"){ setEdit(!edit); }
+  if(e.code==="Escape"){ if(edit){ setEdit(false); } else if(isFS()) exitFS(); }
+},{capture:true,passive:false});
 
-/* Inicial */
-function applyInitial(){ $("#inpTitle")&&($("#inpTitle").value=S.title); $("#inpSub")&&($("#inpSub").value=S.subText); $("#fontSel")&&($("#fontSel").value=S.font); $("#bg")&&($("#bg").value=S.bg); $("#tx")&&($("#tx").value=S.text); $("#qrPct")&&($("#qrPct").value=S.qrPct); $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room; layoutAll(); }
+/* Inicial UI */
+function applyInitial(){
+  $("#inpTitle") && ($("#inpTitle").value=S.title);
+  $("#inpSub")   && ($("#inpSub").value=S.subText);
+  $("#fontSel")  && ($("#fontSel").value=S.font);
+  $("#bg")       && ($("#bg").value=S.bg);
+  $("#tx")       && ($("#tx").value=S.text);
+  $("#qrPct")    && ($("#qrPct").value=S.qrPct);
+  $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
+  layoutAll();
+}
 applyInitial();
 
-/* ======= FIREBASE ======= */
-let fb={ ok:false };
+/* =================== FIREBASE (con Auth anónima) =================== */
+let fb = { ok:false };
 async function initFirebase(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
-    const { getStorage, ref: sRef, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    const { getStorage, ref: sRef, uploadBytes, getDownloadURL } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");
+    const { getAuth, signInAnonymously, onAuthStateChanged } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
 
-    const firebaseConfig={ apiKey:"AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg", authDomain:"qr-proyector.firebaseapp.com", projectId:"qr-proyector", storageBucket:"qr-proyector.appspot.com", messagingSenderId:"1056308881873", appId:"1:1056308881873:web:c48321a62c1597f3ffd8f0", measurementId:"G-7634GLJM1F" };
+    const firebaseConfig = {
+      apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
+      authDomain: "qr-proyector.firebaseapp.com",
+      projectId: "qr-proyector",
+      storageBucket: "qr-proyector.appspot.com",
+      messagingSenderId: "1056308881873",
+      appId: "1:1056308881873:web:c48321a62c1597f3ffd8f0",
+      measurementId: "G-7634GLJM1F"
+    };
 
-    const app=initializeApp(firebaseConfig);
-    const db=getFirestore(app);
-    const st=getStorage(app);
-    const col=collection(db,`rooms/${room}/photos`);
-    fb={ ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, sRef, uploadBytes, getDownloadURL, st, col };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    const st  = getStorage(app);
+    const col = collection(db, `rooms/${room}/photos`);
+    const auth = getAuth(app);
 
-    /* timeline */
+    // Iniciar sesión anónima (necesario si las reglas exigen auth)
+    await new Promise((resolve, reject)=>{
+      onAuthStateChanged(auth, async (u)=>{
+        try{
+          if(!u) await signInAnonymously(auth);
+          resolve();
+        }catch(e){ reject(e); }
+      });
+    });
+
+    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, sRef, uploadBytes, getDownloadURL, st, col };
+
+    /* Timeline + última foto (live) */
     fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
       const photos=[]; snap.forEach(d=>photos.push(d.data()));
       $("#count").textContent=`${photos.length} foto${photos.length===1?"":"s"}`;
-      const r=$("#rail"); r.innerHTML=""; photos.forEach(p=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; r.appendChild(im); });
+      const r=$("#rail"); r.innerHTML="";
+      photos.forEach((p)=>{ const im=new Image(); im.src=p.url; im.alt="Foto"; r.appendChild(im); });
       const ph=$("#photo"), box=$("#qrBox");
       if(!photos.length){ ph.style.display="none"; box.parentElement.style.display="grid"; }
-      else{ const last=photos[photos.length-1].url; const bust=last+(last.includes("?")?"&":"?")+"t="+Date.now(); ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; }; }
+      else{
+        const last=photos[photos.length-1].url;
+        const bust = last + (last.includes("?") ? "&" : "?") + "t=" + Date.now();
+        ph.src=bust; ph.onload=()=>{ ph.style.display="block"; box.parentElement.style.display="none"; };
+      }
     });
 
-    console.log("[Firebase] Inicializado OK");
   }catch(err){
-    console.error("[Firebase] No inicializado:", err);
-    toast("❗ Modo sin conexión a Firebase");
+    console.error("Firebase no inicializado:", err);
+    toast("❗ No conectado a Firebase (QR y edición OK)");
   }
 }
 initFirebase();
 
-/* === PICK archivo SUBIR (siempre activo) === */
-$("#btnPickUp")?.addEventListener("click", ()=>chooseInto($("#fileUpCam"), $("#fileUpGal")));
-$("#fileUpCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
-$("#fileUpGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
+/* ===== SUBIR: botón con progreso + errores claros ===== */
+let selectedUpFile=null;
+$("#fileUp").addEventListener("change",(e)=>{ selectedUpFile=e.target.files?.[0]||null; });
 
-/* === CLICK SUBIR (siempre activo, aunque Firebase aún no esté) === */
 $("#btnUp")?.addEventListener("click", async ()=>{
-  if(!selectedUpFile){ toast("Elegí un archivo primero"); return; }
+  const btn = $("#btnUp");
+  const f = selectedUpFile || $("#fileUp")?.files?.[0];
+  if(!f){ toast("Elegí un archivo primero"); return; }
   if(!fb.ok){ toast("❗ No conectado a Firebase"); return; }
+
   try{
-    const f=selectedUpFile;
-    const name=`${Date.now()}_${(f.name||"foto").replace(/\s+/g,"_")}`;
-    const ref=fb.sRef(fb.st,`rooms/${room}/photos/${name}`);
-    await fb.uploadBytes(ref,f);
-    const url=await fb.getDownloadURL(ref);
+    btn.disabled = true; const prevTxt = btn.textContent; btn.textContent = "Subiendo…";
+    const clean = (f.name||"foto").replace(/\s+/g,"_");
+    const name  = `${Date.now()}_${clean}`;
+    const ref   = fb.sRef(fb.st,`rooms/${room}/photos/${name}`);
+    await fb.uploadBytes(ref,f,{ contentType: f.type || "application/octet-stream" });
+    const url = await fb.getDownloadURL(ref);
     await fb.addDoc(fb.col,{url,createdAt:fb.serverTimestamp()});
-    selectedUpFile=null; $("#upName").textContent="Ningún archivo seleccionado";
+    $("#fileUp").value=""; selectedUpFile=null;
     toast("Foto subida ✅");
+    btn.textContent = prevTxt; btn.disabled = false;
   }catch(e){
-    console.error("[Subir] error", e);
-    toast(e?.code==='permission-denied'?'🔒 Permiso denegado (reglas)':'Error al subir');
+    console.error("Error subir:", e);
+    let msg = "Error al subir";
+    if(e?.code==="permission-denied") msg="🔒 Permiso denegado en reglas";
+    if(e?.message?.includes("storage")) msg="⚠️ Error de Storage";
+    toast(msg);
+    $("#btnUp").disabled=false; $("#btnUp").textContent="Subir";
   }
 });
 
 /* Reset */
 $("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
+
 </script>
 </body>
 </html>
