@@ -1,10 +1,12 @@
-<!doctype html>
+<!doctype html>  
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Pantalla con QR — Edición + Subida remota (no persistente)</title>
+<title>Pantalla con QR — Edición + Subida remota (sin Storage)</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+
 <style>
 :root{ --bg:#000; --text:#fff; --title-font:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
 *{box-sizing:border-box}
@@ -25,47 +27,89 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 .viewer{width:100%;aspect-ratio:16/9;background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:16px;position:relative;overflow:hidden}
 .viewer:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;border:none}
 .cvfx{position:absolute;inset:0;z-index:1;pointer-events:none}
-
-/* Capas */
-.layer-center{position:absolute;inset:0;z-index:2}
-.layer-arts{position:absolute;inset:0;z-index:3}
-/* en edición, el centro no intercepta el click; se editan marco/arts/qr/logo/títulos */
-.select-mode .layer-center{pointer-events:none}
-.select-mode .layer-arts{pointer-events:auto}
-
-/* Safe + centro */
-.safe{position:absolute;inset:18px;display:grid;place-items:center}
+.layer-arts,.layer-center{position:absolute;inset:0;}
+/* por defecto las imágenes subidas van arriba */
+.layer-arts{z-index:8}
+.safe{position:absolute;inset:18px;display:grid;place-items:center;z-index:2}
 .center{display:grid;gap:10px;justify-items:center;text-align:center;width:100%}
 h1{font-family:var(--title-font);font-weight:900;margin:0;line-height:1.05;color:var(--text);font-size:clamp(22px,3.6vw,44px)}
 h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .qr{width:300px;height:300px;display:grid;place-items:center;transition:transform .04s}
 .qr img{width:100%;height:100%;image-rendering:pixelated;display:block}
-.logo{max-width:none;max-height:none;object-fit:contain;display:none}
-.art{position:absolute;object-fit:contain}
+/* apagamos el logo fijo para no molestar */
+.logo{display:none!important}
 
-/* Marco de la foto (editable) */
-.frame{position:absolute;background:#000;border:2px solid rgba(255,255,255,.18);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:4;display:none}
+/* imágenes subidas (se arrastran) */
+.art{
+  position:absolute;
+  object-fit:contain;
+  pointer-events:auto;
+  touch-action:none;
+  cursor:grab;
+  z-index:9;
+}
+
+/* ====== AJUSTE CLAVE ====== */
+/* en modo edición: la caja central NO tapa clics */
+.select-mode .safe{
+  z-index:4;
+  pointer-events:none;
+}
+/* pero estos SÍ quedan clicables */
+.select-mode #title,
+.select-mode #sub,
+.select-mode #qrBox,
+.select-mode #frame{
+  pointer-events:auto;
+}
+/* bajamos un poco las imágenes para que convivan en el mismo plano */
+.select-mode .layer-arts{
+  z-index:3;
+}
+
+/* Marco cuadrado para la foto (editable) */
+.frame{
+  position:absolute;
+  display:none;
+  background:#000;
+  border:2px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  z-index:5;
+}
 .frame img{width:100%;height:100%;object-fit:cover;display:block}
-/* placeholder visible en edición aunque no haya foto */
-.select-mode #frame{display:block;border-style:dashed;background:transparent}
+.frame.placeholder::before{
+  content:"FOTO";
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-weight:700; letter-spacing:.2em; opacity:.25; color:#fff;
+}
 
 /* Controles flotantes */
-.ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:6}
+.ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:10}
 .btn{background:#fff;border:1px solid rgba(0,0,0,.15);color:#0b0e14;padding:8px 10px;border-radius:10px;cursor:pointer}
 .viewer:fullscreen .ctrls{display:none}
 
 /* Modo edición */
-.select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode #logo,.select-mode .art,.select-mode #frame{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
-#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;padding:6px 10px;border-radius:10px;z-index:7;font-size:12px;display:none}
+.select-mode #title,.select-mode #sub,.select-mode #qrBox,.select-mode .art,.select-mode #frame{outline:2px dashed rgba(255,255,255,.45);border-radius:12px}
+#editChip{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;
+  padding:6px 10px;border-radius:10px;z-index:11;font-size:12px;display:none}
 .select-mode #editChip{display:block}
-#editHint{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;z-index:7;font-size:12px}
+#editHint{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;z-index:11;font-size:12px}
+
+/* no tapen el click */
+#editChip,
+#editHint {
+  pointer-events:none;
+}
+
 .small{font-size:12px;color:#cbd5e1}
 
-/* Bounding Box */
-#bbox{position:absolute;z-index:9;border:2px solid #8b5cf6;border-radius:6px;display:none;pointer-events:none}
+/* Bounding Box tipo Canva */
+#bbox{position:absolute;z-index:12;border:2px solid #8b5cf6;border-radius:6px;display:none;pointer-events:none}
 .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #8b5cf6;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:auto;cursor:nwse-resize}
 .handle.n{top:-8px;left:50%;transform:translate(-50%,0);cursor:ns-resize}
-.handle.s{bottom:-8px;left:50%;transform:translate(-50%,0);cursor:ns-resize}
+.handle.s{bottom:-8px;left:50%;transform:translate(0,-50%);cursor:ns-resize}
 .handle.e{right:-8px;top:50%;transform:translate(0,-50%);cursor:ew-resize}
 .handle.w{left:-8px;top:50%;transform:translate(0,-50%);cursor:ew-resize}
 .handle.nw{left:-8px;top:-8px;cursor:nwse-resize}
@@ -82,19 +126,26 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 #viewerPrev{max-width:340px}
 #viewerPrev .layer-center{transform:scale(.7);transform-origin:center}
 
-/* Toast + chooser + up-only */
+/* Toast */
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Chooser mini modal */
 #chooser{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;z-index:70;align-items:center;justify-content:center}
 #chooser .box{background:#0f172a;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px;min-width:280px}
+#chooser .box h3{margin:0 0 6px 0;font-size:16px}
 #chooser .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 #chooser .box .btn{background:#fff}
+
+/* --- Vista SOLO SUBIDA --- */
 .up-only header,.up-only #pantalla,.up-only #ajustes{display:none!important}
 .up-only main{max-width:520px;padding:24px 16px}
 .up-only .card{border-radius:18px}
 .up-only .hero{display:grid;gap:8px;justify-items:center;text-align:center;margin-bottom:10px}
 .up-only h1{font-size:22px}
 .up-only .note{font-size:12px;color:#cbd5e1}
+.fileline{display:flex;align-items:center;gap:10px}
+.filehint{font-size:12px;color:#aab3c5}
 
 .warn{background:#3b0f0f;border:1px solid #ef4444;color:#fecaca;padding:8px 12px;border-radius:10px;margin-bottom:10px}
 .disabled{opacity:.5;pointer-events:none}
@@ -116,11 +167,10 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   <section id="pantalla" class="pane">
     <div class="card">
       <div id="fbWarn" class="warn hidden">⚠️ No conectado a Firestore o permisos denegados. Revisá Auth anónimo y reglas.</div>
-
       <div class="viewer" id="viewer">
         <canvas id="fxMain" class="cvfx"></canvas>
 
-        <!-- Marco cuadrado editable (contiene la foto) -->
+        <!-- Marco foto -->
         <div id="frame" class="frame">
           <img id="photo" alt="">
         </div>
@@ -138,22 +188,28 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           </div>
         </div>
 
-        <div id="editChip">✏️ Edición — arrastrá; clic suelta · Manijas para escalar</div>
+        <div id="editChip">✏️ Edición — arrastrá; manijas para escalar</div>
 
         <div class="ctrls">
           <button id="btnFull" class="btn" type="button">⛶</button>
-          <button id="btnQR" class="btn" type="button">QR</button>
+          <button id="btnFoto" class="btn" type="button">Foto</button>
           <button id="btnEdit" class="btn" type="button">Editar (E)</button>
           <button id="btnSave" class="btn hidden" type="button">Guardar</button>
+          <button id="btnDel" class="btn hidden" type="button">Eliminar</button>
         </div>
 
-        <div id="editHint" class="small hidden">Modo edición — clic y arrastrá para mover · Clic fuera suelta · Manijas para escalar · E on/off · F fullscreen · Esc salir</div>
+        <div id="editHint" class="small hidden">Modo edición — mover con drag · escalar con manijas · clic afuera deselecciona · E on/off · F (Full) · Esc (Salir)</div>
 
-        <!-- Bounding box + 8 manijas -->
+        <!-- BBox -->
         <div id="bbox">
-          <div class="handle nw" data-dir="nw"></div><div class="handle n" data-dir="n"></div><div class="handle ne" data-dir="ne"></div>
-          <div class="handle e" data-dir="e"></div><div class="handle se" data-dir="se"></div><div class="handle s" data-dir="s"></div>
-          <div class="handle sw" data-dir="sw"></div><div class="handle w" data-dir="w"></div>
+          <div class="handle nw" data-dir="nw"></div>
+          <div class="handle n"  data-dir="n"></div>
+          <div class="handle ne" data-dir="ne"></div>
+          <div class="handle e"  data-dir="e"></div>
+          <div class="handle se" data-dir="se"></div>
+          <div class="handle s"  data-dir="s"></div>
+          <div class="handle sw" data-dir="sw"></div>
+          <div class="handle w"  data-dir="w"></div>
         </div>
       </div>
 
@@ -167,7 +223,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
     </div>
   </section>
 
-  <!-- ===== AJUSTES (con PREVIEW) ===== -->
+  <!-- ===== AJUSTES ===== -->
   <section id="ajustes" class="pane hidden">
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between;align-items:center">
@@ -195,7 +251,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             </div>
           </div>
           <div class="row" style="gap:8px;margin-top:10px;display:flex">
-            <button id="btnQRModal" class="btn" type="button">Mostrar QR (modal)</button>
+            <button id="btnQRModal" class="btn" type="button">Mostrar QR</button>
             <button id="btnReset" class="btn" type="button">Reset</button>
           </div>
         </div>
@@ -212,9 +268,10 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Tamaño QR (%)</label><input id="qrPct" type="number" min="20" max="80" value="58"></div>
 
           <hr style="border-color:rgba(255,255,255,.12)">
-          <!-- LOGO -->
+
+          <!-- SUBIR IMAGEN -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
-            <label style="min-width:140px">Logo</label>
+            <label style="min-width:140px">Subir imagen</label>
             <div class="fileline">
               <button id="btnPickLogo" class="btn" type="button">Seleccionar archivo</button>
               <span id="logoName" class="filehint">Ningún archivo seleccionado</span>
@@ -222,6 +279,8 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <input id="logoCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
             <input id="logoGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
+
+          <!-- controles de logo (compat) -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Altura logo (vh)</label><input id="logoVH" type="number" min="6" max="40" value="18"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Posición logo</label>
             <select id="logoPos"><option value="center" selected>Centro</option><option value="top-left">Arriba izq.</option><option value="top-right">Arriba der.</option><option value="bottom-left">Abajo izq.</option><option value="bottom-right">Abajo der.</option></select>
@@ -231,27 +290,16 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <select id="logoBlend"><option value="normal" selected>Normal</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="lighten">Lighten</option><option value="darken">Darken</option></select>
           </div>
 
-          <!-- SUBIR ARTÍCULO -->
-          <hr style="border-color:rgba(255,255,255,.12)">
-          <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
-            <label style="min-width:140px">Subir artículo</label>
-            <div class="fileline">
-              <button id="btnPickArt" class="btn" type="button">Seleccionar archivo</button>
-              <span id="artName" class="filehint">Ningún archivo seleccionado</span>
-              <button id="btnArtUpload" class="btn" type="button">Subir artículo</button>
-            </div>
-            <input id="artCam" type="file" accept="image/*,.svg,.webp,.avif" capture="environment" class="hidden">
-            <input id="artGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
-          </div>
-          <div class="small">El artículo se edita en “Editar (E)” como el QR.</div>
-
-          <!-- DURACIÓN -->
           <hr style="border-color:rgba(255,255,255,.12)">
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Duración por foto (seg)</label>
             <input id="durSec" type="number" min="1" max="60" value="5">
           </div>
-          <div class="small">Cada foto se muestra una sola vez. Al terminar, vuelve el QR.</div>
+          <div class="small">Cada foto aparece una sola vez. Al terminar, vuelve el QR.</div>
+
+          <div class="row" style="margin-top:10px">
+            <button id="btnQRModal" class="btn" type="button">Mostrar QR</button>
+          </div>
         </div>
       </div>
     </div>
@@ -262,9 +310,8 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
     <div class="card">
       <div class="hero">
         <h1>Subí tu foto 📤</h1>
-        <div class="note">Se enviará a la pantalla de la sala <b id="roomUp">—</b></div>
+        <div class="note">Se enviará a la sala <b id="roomUp">—</b></div>
       </div>
-
       <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
         <label style="min-width:120px">Archivo</label>
         <div class="fileline">
@@ -274,7 +321,6 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
         <input id="fileUpCam" type="file" accept="image/*,.svg,.webp,.avif,.gif" capture="environment" class="hidden">
         <input id="fileUpGal" type="file" accept="image/*,.svg,.webp,.avif,.gif" class="hidden">
       </div>
-
       <div class="row" style="justify-content:flex-end;display:flex;margin-top:10px">
         <button id="btnUp" class="btn" type="button">Subir</button>
       </div>
@@ -295,7 +341,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   </div>
 </div>
 
-<!-- Mini chooser Cámara/Galería -->
+<!-- Mini chooser -->
 <div id="chooser">
   <div class="box">
     <h3>¿De dónde tomamos la imagen?</h3>
@@ -308,12 +354,27 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 </div>
 
 <script type="module">
-/* ========== Utilidades ========== */
 const $ = (s)=>document.querySelector(s);
 const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);};
-const enterFS=(el)=>el.requestFullscreen?.(); const exitFS=()=>document.exitFullscreen?.(); const isFS=()=>document.fullscreenElement;
+const enterFS=(el)=>el.requestFullscreen?.(); 
+const exitFS=()=>document.exitFullscreen?.(); 
+const isFS=()=>document.fullscreenElement;
 
-/* Chooser */
+/* limpiar artes al salir */
+function clearArtsFromLS(){
+  const raw = localStorage.getItem("qr:settings");
+  if(!raw) return;
+  try{
+    const st = JSON.parse(raw);
+    if(st && Array.isArray(st.arts)){
+      st.arts = [];
+      localStorage.setItem("qr:settings", JSON.stringify(st));
+    }
+  }catch(_){}
+}
+window.addEventListener("beforeunload", clearArtsFromLS);
+
+/* chooser */
 let chooserResolve = null;
 function openChooser(){ return new Promise((res)=>{ chooserResolve=res; $("#chooser").style.display="flex"; }); }
 function closeChooser(){ $("#chooser").style.display="none"; chooserResolve=null; }
@@ -321,7 +382,7 @@ $("#chCancel").onclick = ()=>{ chooserResolve?.(null); closeChooser(); };
 $("#chCam").onclick    = ()=>{ chooserResolve?.("cam"); closeChooser(); };
 $("#chGal").onclick    = ()=>{ chooserResolve?.("gal"); closeChooser(); };
 
-/* Tabs */
+/* tabs */
 function switchTab(id){
   document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
   document.querySelector(`[data-tab="${id}"]`).classList.add("active");
@@ -331,7 +392,7 @@ function switchTab(id){
 }
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
 
-/* Sala / modo subida */
+/* sala */
 const params = new URLSearchParams(location.search);
 const uploadMode = (location.hash === "#subir");
 let room = params.get("r") || localStorage.getItem("qr:sala") || (Math.random().toString(36).slice(2,8)).toUpperCase();
@@ -350,7 +411,7 @@ function layoutQR(box, viewer, scale=1){
   box.innerHTML=""; box.appendChild(qrImg(buildUploadURL(), side));
 }
 
-/* FX placeholder */
+/* FX */
 class FX{
   constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
   resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0);}
@@ -359,8 +420,12 @@ class FX{
 new FX($("#fxMain"), $("#viewer"));
 new FX($("#fxPrev"), $("#viewerPrev"));
 
-/* ===== Estado / ajustes ===== */
+/* estado */
 const DEFAULTS = JSON.parse(localStorage.getItem("qr:settings") || "{}");
+if (DEFAULTS && Array.isArray(DEFAULTS.arts) && DEFAULTS.arts.length){
+  DEFAULTS.arts = [];
+  localStorage.setItem("qr:settings", JSON.stringify(DEFAULTS));
+}
 const S = Object.assign({
   title:"¡Subí tu foto con el QR!", subText:"Escaneá y subí 📲", font:"Poppins",
   bg:"#000000", text:"#ffffff", qrPct:58,
@@ -370,10 +435,13 @@ const S = Object.assign({
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
   arts:[],
   frameBasePct:60, frameOffX:0, frameOffY:0, frameScale:100,
-  durationSec: 5
+  durationSec:5
 }, DEFAULTS);
-let T=null; const ST=()=> T||S; const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
+let T=null; 
+const ST=()=> T||S; 
+const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
+/* theme */
 function applyTheme(){
   document.documentElement.style.setProperty('--bg', $("#bg")?.value || S.bg);
   document.documentElement.style.setProperty('--text', $("#tx")?.value || S.text);
@@ -391,42 +459,51 @@ function applyTheme(){
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* Pickers */
-async function openChooserFor(hiddenCam, hiddenGal){
+/* subir imagen */
+async function openChooserFor(cam, gal){
   const sel = await openChooser();
-  if(sel==="cam") hiddenCam.click();
-  else if(sel==="gal") hiddenGal.click();
+  if(sel==="cam") cam.click();
+  else if(sel==="gal") gal.click();
 }
-let selectedLogoFile=null, selectedArtFile=null, selectedUpFile=null;
-
 $("#btnPickLogo")?.addEventListener("click", ()=>openChooserFor($("#logoCam"), $("#logoGal")));
-$("#logoCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
-$("#logoGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedLogoFile=f; $("#logoName").textContent=f.name; S.logoUrl=URL.createObjectURL(f); layoutAll(); toast("Logo cargado ✅"); });
 
-["logoVH","logoPos","logoAlpha","logoBlend"].forEach(id=>{
-  const el=$("#"+id); if(!el) return;
-  el.addEventListener("input",()=>{ let v=el.value; if(["logoVH","logoAlpha"].includes(id)) v=Number(v); ST()[id]=v; layoutAll(); });
-});
-
-/* Artículos */
-$("#btnPickArt")?.addEventListener("click", ()=>openChooserFor($("#artCam"), $("#artGal")));
-$("#artCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
-$("#artGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedArtFile=f; $("#artName").textContent=f.name; });
-
-$("#btnArtUpload")?.addEventListener("click", ()=>{
-  const f = selectedArtFile;
-  if(!f){ toast("Elegí una imagen para el artículo"); return; }
-  const url = URL.createObjectURL(f);
-  const id  = "art_"+Date.now();
+/* las subidas van como pos:"free" y con offset random */
+function pushImageToArts(url){
+  const rndX = Math.floor(Math.random()*60) - 30;
+  const rndY = Math.floor(Math.random()*60) - 30;
+  const imgObj = {
+    id:"art_"+Date.now()+"_"+Math.floor(Math.random()*9999),
+    url,
+    pos:"free",
+    sizeVH:18,
+    alpha:100,
+    offX:rndX,
+    offY:rndY,
+    scale:100
+  };
   S.arts = S.arts || [];
-  S.arts.push({ id, url, pos:"top-left", sizeVH:18, alpha:100, offX:0, offY:0, scale:100 });
-  persist(); layoutAll();
-  if(edit) bindSelectables(true);
-  selectedArtFile=null; $("#artName").textContent="Ningún archivo seleccionado";
-  toast("Artículo subido ✅");
-});
+  S.arts.push(imgObj);
+  if(T){
+    T.arts = T.arts || [];
+    T.arts.push({...imgObj});
+  }
+}
+function handleImageSelected(file){
+  if(!file) return;
+  $("#logoName").textContent=file.name;
+  const url = URL.createObjectURL(file);
+  pushImageToArts(url);
+  layoutAll();
+  if(!edit) setEdit(true);
+  toast("Imagen subida ✅");
+  /* limpiar para poder subir otra enseguida */
+  $("#logoCam").value = "";
+  $("#logoGal").value = "";
+}
+$("#logoCam").addEventListener("change",(e)=>handleImageSelected(e.target.files?.[0]));
+$("#logoGal").addEventListener("change",(e)=>handleImageSelected(e.target.files?.[0]));
 
-/* Layout helpers */
+/* layout helpers */
 function placeByPos(el,pos){
   const m="18px"; el.style.top=el.style.right=el.style.bottom=el.style.left="auto";
   if(pos==="top-left"){el.style.top=m;el.style.left=m}
@@ -444,8 +521,13 @@ function layoutFrame(where){
   if(!viewer || !frame) return;
   const SCALE  = (where==="prev") ? .7 : 1;
   const side = Math.floor(Math.min(viewer.clientWidth, viewer.clientHeight) * (s.frameBasePct||60) / 100 * SCALE);
-  frame.style.width = side+"px"; frame.style.height= side+"px";
+  frame.style.width = side+"px";
+  frame.style.height= side+"px";
   setTS(frame, s.frameOffX||0, s.frameOffY||0, (s.frameScale||100)*(where==="prev"?SCALE*100:100)/100);
+  if(where==="main"){
+    const hasImg = $("#photo")?.src && !$("#photo").src.endsWith("#");
+    frame.classList.toggle("placeholder", !hasImg);
+  }
 }
 
 function layoutViewer(where){
@@ -454,10 +536,8 @@ function layoutViewer(where){
   const title  = where==="main" ? $("#title") : $("#titlePrev");
   const sub    = where==="main" ? $("#sub") : $("#subPrev");
   const qrBox  = where==="main" ? $("#qrBox") : $("#qrPrev");
-  const logo   = where==="main" ? $("#logo") : $("#logoPrev");
   const arts   = where==="main" ? $("#artsMain") : $("#artsPrev");
   const SCALE  = (where==="prev") ? .7 : 1;
-
   if(!viewer) return;
 
   title.textContent=s.title; sub.textContent=s.subText;
@@ -465,74 +545,136 @@ function layoutViewer(where){
 
   layoutQR(qrBox, viewer, SCALE);
   setTS(qrBox, s.qrOffX||0, s.qrOffY||0, (s.qrScale||100)*(where==="prev"?SCALE*100:100)/100);
-
   setTS(title, s.titleOffX||0, s.titleOffY||0, (s.titleScale||100)*(where==="prev"?SCALE*100:100)/100);
   setTS(sub,   s.subOffX||0,   s.subOffY||0,   (s.subScale||100)*(where==="prev"?SCALE*100:100)/100);
 
-  if(s.logoUrl){ logo.src=s.logoUrl; logo.style.display="block"; } else { logo.style.display="none"; }
-  const logoVH=(s.logoVH||18)*SCALE; logo.style.height=logoVH+"vh"; logo.style.opacity=(s.logoAlpha||100)/100; logo.style.mixBlendMode=s.logoBlend||"normal";
-  placeByPos(logo,s.logoPos||"center");
-  setTS(logo, s.logoOffX||0, s.logoOffY||0, (s.logoScale||100)*(where==="prev"?SCALE*100:100)/100);
-
   arts.innerHTML="";
   (s.arts||[]).forEach(a=>{
-    const im=new Image(); im.src=a.url; im.className="art"; im.style.height=((a.sizeVH||18)*SCALE)+"vh"; im.style.opacity=(a.alpha||100)/100;
-    placeByPos(im,a.pos||"top-left"); arts.appendChild(im);
-    setTS(im, a.offX||0, a.offY||0, (a.scale||100));
+    const im=new Image(); 
+    im.src=a.url; 
+    im.className="art"; 
+    im.style.height=((a.sizeVH||18)*SCALE)+"vh"; 
+    im.style.opacity=(a.alpha||100)/100;
     im.dataset.artId=a.id;
+    if(a.pos==="free"){
+      im.style.top="0"; 
+      im.style.left="0"; 
+      im.style.right="auto"; 
+      im.style.bottom="auto";
+    }else{
+      placeByPos(im,a.pos||"top-left");
+    }
+    arts.appendChild(im);
+    setTS(im, a.offX||0, a.offY||0, (a.scale||100));
+    im.addEventListener("pointerdown", onDown);
   });
 
   layoutFrame(where);
+
+  if(where==="main" && edit){
+    bindSelectables(true);
+  }
 }
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
 window.addEventListener("resize", layoutAll);
 
-/* ===== Edición (drag + resize) ===== */
+/* edición */
 let edit=false, dragging=false, dragEl=null, selectedEl=null, startX=0, startY=0, baseX=0, baseY=0;
 const bbox=$("#bbox");
+
 function getKey(el){
   if(el?.id==="title") return "title";
   if(el?.id==="sub")   return "sub";
   if(el?.id==="qrBox") return "qr";
-  if(el?.id==="logo")  return "logo";
   if(el?.id==="frame") return "frame";
   if(el?.classList?.contains("art")) return "art:"+el.dataset.artId;
   return "";
 }
 function getOffsets(key){
   const s=ST();
-  if(key==="title") return {x:s.titleOffX||0,y:s.titleOffY||0,sc:s.titleScale||100,set:(x,y,sc)=>{T.titleOffX=x;T.titleOffY=y;if(sc!=null)T.titleScale=sc;}};
-  if(key==="sub")   return {x:s.subOffX||0,y:s.subOffY||0,sc:s.subScale||100,set:(x,y,sc)=>{T.subOffX=x;T.subOffY=y;if(sc!=null)T.subScale=sc;}};
-  if(key==="qr")    return {x:s.qrOffX||0,y:s.qrOffY||0,sc:s.qrScale||100,set:(x,y,sc)=>{T.qrOffX=x;T.qrOffY=y;if(sc!=null)T.qrScale=sc;}};
-  if(key==="logo")  return {x:s.logoOffX||0,y:s.logoOffY||0,sc:s.logoScale||100,set:(x,y,sc)=>{T.logoOffX=x;T.logoOffY=y;if(sc!=null)T.logoScale=sc;}};
-  if(key==="frame") return {x:s.frameOffX||0,y:s.frameOffY||0,sc:s.frameScale||100,set:(x,y,sc)=>{T.frameOffX=x;T.frameOffY=y;if(sc!=null)T.frameScale=sc;}};
+  const target = T || S;
+  if(key==="title") return {x:s.titleOffX||0,y:s.titleOffY||0,sc:s.titleScale||100,set:(x,y,sc)=>{target.titleOffX=x;target.titleOffY=y;if(sc!=null)target.titleScale=sc;}};
+  if(key==="sub")   return {x:s.subOffX||0,y:s.subOffY||0,sc:s.subScale||100,set:(x,y,sc)=>{target.subOffX=x;target.subOffY=y;if(sc!=null)target.subScale=sc;}};
+  if(key==="qr")    return {x:s.qrOffX||0,y:s.qrOffY||0,sc:s.qrScale||100,set:(x,y,sc)=>{target.qrOffX=x;target.qrOffY=y;if(sc!=null)target.qrScale=sc;}};
+  if(key==="frame") return {x:s.frameOffX||0,y:s.frameOffY||0,sc:s.frameScale||100,set:(x,y,sc)=>{target.frameOffX=x;target.frameOffY=y;if(sc!=null)target.frameScale=sc;}};
   if(key.startsWith("art:")){
-    const id=key.split(":")[1]; const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
-    return {x:a.offX||0,y:a.offY||0,sc:a.scale||100,set:(x,y,sc)=>{const j=T.arts.findIndex(z=>z.id===id); if(j>-1){ T.arts[j]={...T.arts[j],offX:x,offY:y,scale:(sc!=null?sc:T.arts[j].scale||100)}; }}};}
+    const id=key.split(":")[1]; 
+    const a=(s.arts||[]).find(v=>v.id===id)||{offX:0,offY:0,scale:100};
+    return {
+      x:a.offX||0,
+      y:a.offY||0,
+      sc:a.scale||100,
+      set:(x,y,sc)=>{
+        const list = target.arts || [];
+        const j=list.findIndex(z=>z.id===id);
+        if(j>-1){
+          list[j]={...list[j],offX:x,offY:y,scale:(sc!=null?sc:list[j].scale||100)};
+        }
+        target.arts = list;
+        if(!T){
+          persist();
+        }
+      }
+    };
+  }
   return {x:0,y:0,sc:100,set:()=>{}};
 }
-function bindSelectables(on){
-  const els=[$("#title"),$("#sub"),$("#qrBox"),$("#logo"),$("#frame"),...$("#artsMain").querySelectorAll(".art")];
-  els.forEach(el=>{ if(!el) return; el.style.pointerEvents = on ? "auto" : "none"; if(on){ el.addEventListener("pointerdown", onDown); } else { el.removeEventListener("pointerdown", onDown); }});
+
+function showBBox(el){ bbox.style.display="block"; positionBBox(el); }
+function hideBBox(){ bbox.style.display="none"; }
+function positionBBox(el){
+  const r=el.getBoundingClientRect(), host=$("#viewer").getBoundingClientRect();
+  bbox.style.left=(r.left-host.left)+"px";
+  bbox.style.top =(r.top -host.top )+"px";
+  bbox.style.width = r.width+"px";
+  bbox.style.height= r.height+"px";
 }
-function onDown(e){
-  if(!edit) return;
-  dragEl=e.currentTarget; selectedEl=dragEl; dragging=true;
-  dragEl.setPointerCapture?.(e.pointerId);
+function selectEl(el){
+  if(!el) return;
+  selectedEl = el;
   document.querySelectorAll(".is-sel").forEach(n=>n.classList.remove("is-sel"));
-  dragEl.classList.add("is-sel");
+  el.classList.add("is-sel");
+  showBBox(el);
+}
+function deselectEl(){
+  if(!selectedEl) return;
+  selectedEl.classList.remove("is-sel");
+  selectedEl = null;
+  hideBBox();
+}
+
+$("#viewer").addEventListener("pointerdown",(e)=>{
+  if(!edit) return;
+  const inside = e.target.closest("#title,#sub,#qrBox,#frame,.art,#bbox");
+  if(!inside){ deselectEl(); }
+},{capture:true});
+
+function bindSelectables(on){
+  const els=[$("#title"),$("#sub"),$("#qrBox"),$("#frame"),...$("#artsMain").querySelectorAll(".art")];
+  els.forEach(el=>{
+    if(!el) return;
+    el.style.pointerEvents = on ? "auto" : el.classList.contains("art") ? "auto" : "none";
+    el.removeEventListener("pointerdown", onDown);
+    if(on) el.addEventListener("pointerdown", onDown);
+  });
+}
+
+function onDown(e){
+  if(!edit && !e.currentTarget.classList.contains("art")) return;
+  dragEl=e.currentTarget; dragging=true;
+  dragEl.setPointerCapture?.(e.pointerId);
+  selectEl(dragEl);
   const st=getOffsets(getKey(dragEl));
   baseX=st.x||0; baseY=st.y||0; startX=e.clientX; startY=e.clientY;
-  showBBox(dragEl);
   window.addEventListener("pointermove", onMove);
-  window.addEventListener("click", onGlobalClickOnce, {once:true});
   window.addEventListener("pointerup", onUp, {once:true});
   window.addEventListener("pointercancel", onUp, {once:true});
 }
+
 function onMove(e){
   if(!dragging || !dragEl) return;
-  const safe=$("#viewer .safe").getBoundingClientRect();
-  const hw=safe.width/2, hh=safe.height/2;
+  const view=$("#viewer").getBoundingClientRect();
+  const hw=view.width/2, hh=view.height/2;
   const dx=e.clientX-startX, dy=e.clientY-startY;
   const nx = baseX + (dx/hw)*100;
   const ny = baseY + (dy/hh)*100;
@@ -540,45 +682,46 @@ function onMove(e){
   dragEl.style.transform=`translate(${nx}%, ${ny}%) scale(${sc})`;
   positionBBox(dragEl);
 }
+
 function finishDrop(){
   if(!dragEl) return;
   const style=dragEl.style.transform || getComputedStyle(dragEl).transform;
-  const safe=$("#viewer .safe").getBoundingClientRect();
+  const view=$("#viewer").getBoundingClientRect();
   let xPct=baseX, yPct=baseY;
   const mPct=/translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform);
   if(mPct && dragEl.style.transform.includes("%")){
     xPct=parseFloat(mPct[1]||0); yPct=parseFloat(mPct[2]||0);
   }else{
     const mPx=/matrix\([^,]+,[^,]+,[^,]+,[^,]+,([-\d.]+),([-\d.]+)\)/.exec(getComputedStyle(dragEl).transform);
-    if(mPx){ const px=parseFloat(mPx[1]||0), py=parseFloat(mPx[2]||0); xPct=(px/(safe.width/2))*100; yPct=(py/(safe.height/2))*100; }
+    if(mPx){
+      const px=parseFloat(mPx[1]||0), py=parseFloat(mPx[2]||0);
+      xPct=(px/(view.width/2))*100; yPct=(py/(view.height/2))*100;
+    }
   }
   const scMatch=/scale\(([\d.]+)\)/.exec(style);
   const sc = scMatch ? Math.round(parseFloat(scMatch[1])*100) : getOffsets(getKey(dragEl)).sc||100;
-  getOffsets(getKey(dragEl)).set(xPct,yPct,sc);
-  dragEl.classList.remove("is-sel"); dragEl=null; dragging=false;
-  window.removeEventListener("pointermove", onMove); hideBBox();
+  const dist = Math.hypot(xPct-baseX, yPct-baseY);
+  const finalX = dist<0.3 ? baseX : xPct;
+  const finalY = dist<0.3 ? baseY : yPct;
+  getOffsets(getKey(dragEl)).set(finalX,finalY,sc);
+  dragging=false;
+  positionBBox(dragEl);
+  dragEl=null;
 }
 function onUp(){ finishDrop(); }
-function onGlobalClickOnce(){ finishDrop(); }
 
-/* BBox / Handles */
-let resizing=false, resizeDir="", startScale=100, startWH={w:0,h:0};
-const bboxEl=$("#bbox");
-function showBBox(el){ bboxEl.style.display="block"; positionBBox(el); }
-function hideBBox(){ bboxEl.style.display="none"; }
-function positionBBox(el){
-  const r=el.getBoundingClientRect(), host=$("#viewer").getBoundingClientRect();
-  bboxEl.style.left=(r.left-host.left)+"px"; bboxEl.style.top=(r.top-host.top)+"px";
-  bboxEl.style.width=r.width+"px"; bboxEl.style.height=r.height+"px";
-}
-bboxEl.querySelectorAll(".handle").forEach(h=>{
+/* resize handles */
+let resizing=false, resizeDir="", startScale=100, startWH={w:0,h:0}, startTX=0, startTY=0;
+$("#bbox").querySelectorAll(".handle").forEach(h=>{
   h.addEventListener("pointerdown",(e)=>{
-    if(!edit) return;
+    if(!edit || !selectedEl) return;
     e.stopPropagation(); e.preventDefault();
-    const target = selectedEl; if(!target) return;
-    dragEl = target;
+    dragEl = selectedEl;
     const k=getKey(dragEl); const st=getOffsets(k);
     startScale=st.sc||100; startWH={w:dragEl.getBoundingClientRect().width, h:dragEl.getBoundingClientRect().height};
+    const tr = /translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform) || [0,0,st.x||0,st.y||0];
+    startTX=parseFloat(tr[1]||st.x||0);
+    startTY=parseFloat(tr[2]||st.y||0);
     startX=e.clientX; startY=e.clientY;
     resizing=true; resizeDir=e.currentTarget.dataset.dir;
     window.addEventListener("pointermove", onResizeMove);
@@ -593,15 +736,35 @@ function onResizeMove(e){
   const relY = (resizeDir.includes("s")? dy : resizeDir.includes("n")? -dy : 0) / Math.max(40,startWH.h);
   const rel  = (Math.abs(relX)>Math.abs(relY)? relX : relY);
   let newScale = Math.max(10, Math.min(400, Math.round((startScale*(1+rel))*1)));
-  const tr = /translate\(([-\d.]+)%?,\s*([-\d.]+)%?\)/.exec(dragEl.style.transform) || [0,0,0];
-  const tx=parseFloat(tr[1]||0), ty=parseFloat(tr[2]||0);
-  dragEl.style.transform=`translate(${tx}%, ${ty}%) scale(${newScale/100})`;
+  dragEl.style.transform=`translate(${startTX}%, ${startTY}%) scale(${newScale/100})`;
   positionBBox(dragEl);
   const k=getKey(dragEl); const st=getOffsets(k); st.set(st.x, st.y, newScale);
 }
-function endResize(){ resizing=false; }
+function endResize(){ resizing=false; dragEl=null; }
 
-/* Modo edición */
+/* eliminar */
+function removeArtById(id){
+  S.arts = (S.arts || []).filter(a=>a.id!==id);
+  if(T && T.arts){ T.arts = T.arts.filter(a=>a.id!==id); }
+  persist();
+  layoutAll();
+}
+$("#btnDel").addEventListener("click", ()=>{
+  if(!edit) { toast("Activá edición primero"); return; }
+  if(!selectedEl){ toast("Seleccioná una imagen"); return; }
+  const key = getKey(selectedEl);
+  if(key.startsWith("art:")){
+    const id = key.split(":")[1];
+    selectedEl.remove();
+    removeArtById(id);
+    deselectEl();
+    toast("Imagen eliminada 🗑️");
+  }else{
+    toast("Solo se elimina lo subido");
+  }
+});
+
+/* modo edición */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 function setEdit(on){
   if(on===edit) return;
@@ -609,23 +772,58 @@ function setEdit(on){
   if(edit){
     T = deepClone(S);
     $("#viewer").classList.add("select-mode");
-    $("#btnEdit").classList.add("hidden"); $("#btnSave").classList.remove("hidden");
-    $("#editHint").classList.remove("hidden"); $("#editChip").style.display="block";
+    $("#btnEdit").classList.add("hidden"); 
+    $("#btnSave").classList.remove("hidden");
+    $("#btnDel").classList.remove("hidden");
+    $("#editHint").classList.remove("hidden"); 
+    $("#editChip").style.display="block";
     bindSelectables(true);
   }else{
     hideBBox();
     T && Object.assign(S, T);
     T=null; dragging=false; dragEl=null; selectedEl=null; resizing=false;
     $("#viewer").classList.remove("select-mode");
-    $("#btnEdit").classList.remove("hidden"); $("#btnSave").classList.add("hidden");
-    $("#editHint").classList.add("hidden"); $("#editChip").style.display="none";
-    bindSelectables(false); persist(); layoutAll();
+    $("#btnEdit").classList.remove("hidden"); 
+    $("#btnSave").classList.add("hidden");
+    $("#btnDel").classList.add("hidden");
+    $("#editHint").classList.add("hidden"); 
+    $("#editChip").style.display="none";
+    bindSelectables(false); 
+    persist(); 
+    layoutAll();
+    $("#frame").style.display="none";
   }
 }
 $("#btnEdit").addEventListener("click",()=>setEdit(true));
 $("#btnSave").addEventListener("click",()=>{ setEdit(false); toast("Cambios guardados ✅"); });
 
-/* Modal QR / Fullscreen / Atajos */
+/* Foto toggle */
+function ensureFrameVisible(select=false){
+  const f=$("#frame");
+  f.style.display="block";
+  const hasImg = $("#photo")?.src && !$("#photo").src.endsWith("#");
+  f.classList.toggle("placeholder", !hasImg);
+  if(select){ selectEl(f); }
+}
+$("#btnFoto")?.addEventListener("click", ()=>{
+  const f=$("#frame");
+  if(!edit){
+    setEdit(true);
+    ensureFrameVisible(true);
+    return;
+  }
+  const isVisible = f.style.display!=="none";
+  if(isVisible){
+    f.style.display="none";
+    deselectEl();
+    toast("Foto ocultada ✅");
+  }else{
+    ensureFrameVisible(true);
+    toast("Foto mostrada ✅");
+  }
+});
+
+/* Modal QR / Fullscreen / atajos */
 const modal=$("#qrModal"), stage=$("#qrStage"), qrBig=$("#qrBig");
 function openQR(){ if(location.hash==="#subir") return;
   modal.style.display="block";
@@ -634,19 +832,18 @@ function openQR(){ if(location.hash==="#subir") return;
   stage.requestFullscreen?.(); $("#qrTitle").textContent=ST().title||"—";
 }
 function closeQR(){ modal.style.display="none"; if(isFS()) exitFS(); }
-$("#btnQR")?.addEventListener("click", openQR);
 $("#btnQRModal")?.addEventListener("click", openQR);
 modal?.addEventListener("click",(e)=>{ if(e.target===modal) closeQR(); });
 $("#btnFull")?.addEventListener("click", ()=>{ if(isFS()) exitFS(); else enterFS($("#viewer")); });
 document.addEventListener("keydown",(e)=>{
-  if(["KeyF","KeyQ","Escape","KeyE"].includes(e.code)) e.preventDefault();
+  if(["KeyF","Escape","KeyE","KeyQ"].includes(e.code)) e.preventDefault();
   if(e.code==="KeyF"){ if(isFS()) exitFS(); else enterFS($("#viewer")); }
-  if(e.code==="KeyQ"){ openQR(); }
   if(e.code==="KeyE"){ setEdit(!edit); }
+  if(e.code==="KeyQ"){ openQR(); }
   if(e.code==="Escape"){ if(edit){ setEdit(false); } else if(isFS()) exitFS(); }
 },{capture:true,passive:false});
 
-/* Inicial UI */
+/* inicial */
 function applyInitial(){
   $("#inpTitle") && ($("#inpTitle").value=S.title);
   $("#inpSub")   && ($("#inpSub").value=S.subText);
@@ -660,10 +857,9 @@ function applyInitial(){
 }
 applyInitial();
 
-/* Reset */
 $("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
 
-/* ===== COMPRESIÓN a Base64 ===== */
+/* compresión */
 async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   const bitmap = await createImageBitmap(file);
   const {width: w, height: h} = bitmap;
@@ -677,42 +873,61 @@ async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   const ctx = cv.getContext('2d');
   ctx.drawImage(bitmap, 0, 0, nw, nh);
   let q = quality, dataURL = cv.toDataURL('image/jpeg', q);
-  while (dataURL.length > 900*1024 && q > 0.5){ q -= 0.08; dataURL = cv.toDataURL('image/jpeg', q); }
+  while (dataURL.length > 900*1024 && q > 0.5){
+    q -= 0.08;
+    dataURL = cv.toDataURL('image/jpeg', q);
+  }
   return dataURL;
 }
 
-/* ===== Slideshow no persistente ===== */
-let shownIds = new Set();     // ids ya mostrados (no repetir)
-let queue    = [];            // cola en esta sesión
+/* slideshow */
+let shownIds = new Set();
+let queue    = [];
 let slideIndex = 0;
 let slideTimer = null;
 let slideActive = false;
-
 function showCenter(on){ $("#qrBox").parentElement.style.display = on ? "grid" : "none"; }
 function showFrame(on){ $("#frame").style.display = on ? "block" : "none"; }
-function showPhoto(src){ const ph=$("#photo"); ph.src=src; ph.onload=()=>{ showCenter(false); showFrame(true); }; }
-function endShow(){ showFrame(false); showCenter(true); slideActive=false; clearTimeout(slideTimer); slideTimer=null; }
+function showPhoto(src){
+  const ph=$("#photo");
+  ph.src=src || "#";
+  ph.onload=()=>{ $("#frame").classList.remove("placeholder"); showCenter(false); showFrame(true); };
+}
+function endShow(){
+  showFrame(false); showCenter(true);
+  slideActive=false; clearTimeout(slideTimer); slideTimer=null;
+}
 function runQueue(){
-  if(slideIndex >= queue.length){ queue = []; slideIndex = 0; endShow(); return; }
+  if(slideIndex >= queue.length){
+    queue = []; slideIndex = 0; endShow(); return;
+  }
   const p = queue[slideIndex];
   const src = p.b64 || p.url;
   shownIds.add(p.id);
   showPhoto(src);
   const dur = Math.max(1, Number(ST().durationSec||5));
   clearTimeout(slideTimer);
-  slideTimer = setTimeout(async ()=>{ await tryDelete(p.id); slideIndex++; runQueue(); }, dur*1000);
+  slideTimer = setTimeout(()=>{ slideIndex++; runQueue(); }, dur*1000);
 }
-function startSlideshow(){ if(uploadMode) return; if(!queue.length){ endShow(); return; } slideActive=true; slideIndex=0; runQueue(); }
-function resetSlideshow(){ clearTimeout(slideTimer); slideTimer=null; startSlideshow(); }
+function startSlideshow(){
+  if(uploadMode) return;
+  if(!queue.length){ endShow(); return; }
+  slideActive=true; slideIndex=0; runQueue();
+}
+function resetSlideshow(){
+  clearTimeout(slideTimer); slideTimer=null; startSlideshow();
+}
 
-/* ===== Firebase (para transportar, sin persistir) ===== */
-let fb = { ok:false, db:null, col:null, mods:null, toDelete:new Set() };
+/* firebase */
+let fb = { ok:false };
+let selectedUpFile=null;
 async function initFirebase(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const firestoreMods = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
-    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, doc, getDocs } = firestoreMods;
-    const { getAuth, signInAnonymously, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    const { getAuth, signInAnonymously, onAuthStateChanged } =
+      await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
 
     const firebaseConfig = {
       apiKey: "AIzaSyBL7pLPNImcTCg4wlO5N1i426hEf3MevUg",
@@ -728,15 +943,16 @@ async function initFirebase(){
     const db  = getFirestore(app);
     const auth = getAuth(app);
 
-    await new Promise((resolve)=>{ onAuthStateChanged(auth, (u)=>{ if(u) return resolve(); signInAnonymously(auth).finally(resolve); }); });
+    await new Promise((resolve)=>{
+      onAuthStateChanged(auth, (u)=>{ if(u) return resolve(); signInAnonymously(auth).finally(resolve); });
+    });
 
     const col = collection(db, `rooms/${room}/photos`);
-    fb = { ok:true, db, col, mods: firestoreMods, addDoc, serverTimestamp, onSnapshot, query, orderBy, deleteDoc, doc, getDocs, toDelete:new Set() };
+    fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, col };
 
     $("#fbWarn").classList.add("hidden");
 
-    /* Feed -> solo encola lo no visto */
-    fb.onSnapshot(fb.query(col, orderBy("createdAt","asc")), (snap)=>{
+    fb.onSnapshot(fb.query(fb.col, fb.orderBy("createdAt","asc")), (snap)=>{
       const docs=[];
       snap.forEach(d=>docs.push({ id:d.id, ...d.data() }));
 
@@ -745,11 +961,12 @@ async function initFirebase(){
       docs.forEach((p)=>{ const im=new Image(); im.src=p.b64 || p.url; im.alt="Foto"; r.appendChild(im); });
 
       const fresh = docs.filter(d=>!shownIds.has(d.id));
-      fresh.forEach(d=>fb.toDelete.add(d.id));         // marcar para limpieza en reload
-      if(fresh.length){ queue.push(...fresh); if(!slideActive) startSlideshow(); }
+      if(fresh.length){
+        queue.push(...fresh);
+        if(!slideActive) startSlideshow();
+      }
     });
 
-    /* Subida (desde QR) */
     $("#btnPickUp")?.addEventListener("click", ()=>openChooserFor($("#fileUpCam"), $("#fileUpGal")));
     $("#fileUpCam").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
     $("#fileUpGal").addEventListener("change",(e)=>{ const f=e.target.files?.[0]; if(!f) return; selectedUpFile=f; $("#upName").textContent=f.name; });
@@ -768,27 +985,15 @@ async function initFirebase(){
       }
     });
 
-    /* Limpieza al recargar/cerrar: intentar borrar lo pendiente */
-    window.addEventListener("beforeunload", async ()=>{
-      try{
-        const ids=[...fb.toDelete];
-        for(const id of ids){ await tryDelete(id); }
-      }catch(_){}
-    });
-
   }catch(err){
     console.error("Firestore no inicializado:", err);
     $("#fbWarn").classList.remove("hidden");
-    ["btnUp","btnArtUpload"].forEach(id=>document.getElementById(id)?.classList.add("disabled"));
+    ["btnUp"].forEach(id=>document.getElementById(id)?.classList.add("disabled"));
   }
-}
-async function tryDelete(id){
-  try{ if(fb.ok){ await fb.deleteDoc(fb.doc(fb.db, `rooms/${room}/photos/${id}`)); fb.toDelete.delete(id); } }
-  catch(e){ /* silencioso */ }
 }
 initFirebase();
 
-/* Visibilidad inicial */
+/* visibilidad inicial */
 function initialVisibility(){ showCenter(true); showFrame(false); }
 initialVisibility();
 </script>
