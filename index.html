@@ -27,10 +27,181 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 .viewer{width:100%;aspect-ratio:16/9;background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:16px;position:relative;overflow:hidden}
 .viewer:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;border:none}
 .cvfx{position:absolute;inset:0;z-index:1;pointer-events:none}
+
+/* ===== CAPA DE DISEÑOS =====
+   la agrando para que cubra TODA la pantalla sin cortes */
+.fx-design{
+  position:absolute;
+  inset:-15%;
+  z-index:2;
+  pointer-events:none;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:cover;
+  filter:drop-shadow(0 0 20px rgba(0,0,0,.4));
+  /* para que los ::before/::after funcionen */
+  content:"";
+}
+.fx-design::before,
+.fx-design::after{
+  content:"";
+  position:absolute;
+  inset:-10%;
+  pointer-events:none;
+}
+
+/* ========== DISEÑOS MEJORADOS ========== */
+
+/* 1) ESTRELLAS: dos capas, una chiquita que titila y otra con nebulosa */
+.d-stars{
+  background:
+    radial-gradient(circle at 50% 40%, rgba(11,14,20,0) 0, rgba(11,14,20,1) 65%),
+    radial-gradient(circle at 10% 10%, rgba(255,255,255,.05) 0, rgba(255,255,255,0) 40%);
+  mix-blend-mode:screen;
+}
+.d-stars::before{
+  /* capa de estrellas muy densas */
+  background-image:
+    radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 40%),
+    radial-gradient(1.6px 1.6px at 30% 80%, rgba(255,255,255,.9) 0, rgba(255,255,255,0) 45%),
+    radial-gradient(1.2px 1.2px at 70% 30%, rgba(255,255,255,.85) 0, rgba(255,255,255,0) 42%),
+    radial-gradient(2.8px 2.8px at 90% 70%, rgba(255,215,0,.9) 0, rgba(255,215,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 50% 50%, rgba(156,163,255,.9) 0, rgba(156,163,255,0) 45%);
+  background-size:160px 160px,180px 180px,200px 200px,240px 240px,220px 220px;
+  animation: skyMove 35s linear infinite;
+  opacity:.95;
+}
+.d-stars::after{
+  /* brillo nebulosa suave */
+  background:
+    radial-gradient(circle at 20% 60%, rgba(255,255,255,.12) 0, rgba(255,255,255,0) 45%),
+    radial-gradient(circle at 80% 25%, rgba(255,225,150,.2) 0, rgba(255,225,150,0) 48%),
+    radial-gradient(circle at 50% 88%, rgba(130,170,255,.18) 0, rgba(130,170,255,0) 50%);
+  mix-blend-mode:screen;
+  animation: twinkle 6s ease-in-out infinite alternate;
+  opacity:.8;
+}
+@keyframes skyMove{
+  0%{transform:translateX(0) translateY(0)}
+  100%{transform:translateX(6%) translateY(8%)}
+}
+@keyframes twinkle{
+  from{opacity:.35}
+  to{opacity:1}
+}
+
+/* 2) LUCES / ESCENARIO: haces desde arriba y laterales */
+.d-lights{
+  background:
+    radial-gradient(circle at 12% -12%, rgba(255,255,255,1) 0, rgba(255,255,255,0) 55%),
+    radial-gradient(circle at 88% -14%, rgba(255,214,165,1) 0, rgba(255,214,165,0) 55%),
+    linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.5) 70%);
+  mix-blend-mode:screen;
+}
+.d-lights::before{
+  /* haces inclinados */
+  background-image:
+    linear-gradient(120deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 55%),
+    linear-gradient(240deg, rgba(255,200,120,.55) 0%, rgba(255,200,120,0) 55%),
+    radial-gradient(circle, rgba(255,255,255,.22) 0, rgba(255,255,255,0) 50%);
+  background-size: 55% 140%, 55% 140%, 100% 100%;
+  background-position: -10% -6%, 110% -6%, center;
+  animation: lightsPulse 5s ease-in-out infinite alternate;
+  mix-blend-mode:screen;
+  opacity:.95;
+}
+.d-lights::after{
+  /* partículas de luz más chiquitas */
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 80%, rgba(255,255,255,.8) 0, rgba(255,255,255,0) 60%),
+    radial-gradient(2px 2px at 90% 65%, rgba(255,230,180,.85) 0, rgba(255,230,180,0) 55%);
+  background-size:140px 140px, 180px 180px;
+  animation: lightsDrift 12s linear infinite;
+  opacity:.75;
+}
+@keyframes lightsPulse{
+  0%{opacity:.9;filter:blur(0px)}
+  100%{opacity:1;filter:blur(2.5px)}
+}
+@keyframes lightsDrift{
+  0%{transform:translateY(0)}
+  100%{transform:translateY(10%)}
+}
+
+/* 3) FUEGOS ARTIFICIALES: explosiones en distintos puntos */
+.d-fireworks{
+  background: radial-gradient(circle at 50% 120%, rgba(0,0,0,.3) 0, rgba(0,0,0,0) 65%);
+  mix-blend-mode:screen;
+}
+.d-fireworks::before{
+  /* explosión 1 */
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,1) 0, rgba(255,255,255,0) 55%),
+    radial-gradient(circle, rgba(255,146,146,1) 0, rgba(255,146,146,0) 50%),
+    radial-gradient(circle, rgba(120,185,255,1) 0, rgba(120,185,255,0) 50%);
+  background-size: 180px 180px, 220px 220px, 240px 240px;
+  background-position: 12% 15%, 74% 10%, 40% 78%;
+  animation: explodeA 4.5s ease-in-out infinite;
+  opacity:.95;
+}
+.d-fireworks::after{
+  /* explosión 2 desfasada */
+  background-image:
+    radial-gradient(circle, rgba(255,227,130,1) 0, rgba(255,227,130,0) 50%),
+    radial-gradient(circle, rgba(255,255,255,.5) 0, rgba(255,255,255,0) 70%);
+  background-size: 210px 210px, 520px 520px;
+  background-position: 85% 75%, 46% 40%;
+  animation: explodeB 5.2s ease-in-out infinite;
+  opacity:.9;
+}
+@keyframes explodeA{
+  0%{transform:scale(.9);opacity:0}
+  10%{opacity:1}
+  45%{transform:scale(1.08);opacity:1}
+  100%{transform:scale(1.18);opacity:0}
+}
+@keyframes explodeB{
+  0%{transform:scale(.7);opacity:0}
+  15%{opacity:1}
+  55%{transform:scale(1.15);opacity:1}
+  100%{transform:scale(1.25);opacity:0}
+}
+
+/* 4) ONDAS DORADAS: más llenas y envolventes */
+.d-waves{
+  background:
+    radial-gradient(circle at 50% 130%, rgba(212,175,55,.55) 0, rgba(212,175,55,0) 70%),
+    radial-gradient(circle at -8% 25%, rgba(255,255,255,.08) 0, rgba(255,255,255,0) 55%);
+  opacity:.9;
+}
+.d-waves::before{
+  background-image:
+    linear-gradient(135deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.05) 50%, rgba(255,255,255,.05) 75%, transparent 75%, transparent);
+  background-size:42px 42px;
+  mix-blend-mode:screen;
+  animation: slowwave 14s linear infinite;
+  opacity:.45;
+}
+.d-waves::after{
+  background:
+    radial-gradient(circle at 10% 90%, rgba(255,209,112,.55) 0, rgba(255,209,112,0) 55%),
+    radial-gradient(circle at 90% 12%, rgba(255,255,255,.15) 0, rgba(255,255,255,0) 60%);
+  animation: waveGlow 12s ease-in-out infinite alternate;
+  opacity:.85;
+}
+@keyframes slowwave{
+  from{background-position:0 0}
+  to{background-position:180px 180px}
+}
+@keyframes waveGlow{
+  0%{opacity:.6}
+  100%{opacity:1}
+}
+
+/* capas principales */
 .layer-arts,.layer-center{position:absolute;inset:0;}
-/* por defecto las imágenes subidas van arriba */
 .layer-arts{z-index:8}
-.safe{position:absolute;inset:18px;display:grid;place-items:center;z-index:2}
+.safe{position:absolute;inset:18px;display:grid;place-items:center;z-index:3}
 .center{display:grid;gap:10px;justify-items:center;text-align:center;width:100%}
 h1{font-family:var(--title-font);font-weight:900;margin:0;line-height:1.05;color:var(--text);font-size:clamp(22px,3.6vw,44px)}
 h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
@@ -49,20 +220,17 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   z-index:9;
 }
 
-/* ====== AJUSTE CLAVE ====== */
-/* en modo edición: la caja central NO tapa clics */
+/* ====== AJUSTE DE EDICIÓN PARA QUE TODO TOQUE ====== */
 .select-mode .safe{
   z-index:4;
   pointer-events:none;
 }
-/* pero estos SÍ quedan clicables */
 .select-mode #title,
 .select-mode #sub,
 .select-mode #qrBox,
 .select-mode #frame{
   pointer-events:auto;
 }
-/* bajamos un poco las imágenes para que convivan en el mismo plano */
 .select-mode .layer-arts{
   z-index:3;
 }
@@ -96,12 +264,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   padding:6px 10px;border-radius:10px;z-index:11;font-size:12px;display:none}
 .select-mode #editChip{display:block}
 #editHint{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;z-index:11;font-size:12px}
-
-/* no tapen el click */
-#editChip,
-#editHint {
-  pointer-events:none;
-}
+#editChip,#editHint{pointer-events:none}
 
 .small{font-size:12px;color:#cbd5e1}
 
@@ -170,6 +333,9 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
       <div class="viewer" id="viewer">
         <canvas id="fxMain" class="cvfx"></canvas>
 
+        <!-- capa de diseño -->
+        <div class="fx-design" id="fxDesignMain"></div>
+
         <!-- Marco foto -->
         <div id="frame" class="frame">
           <img id="photo" alt="">
@@ -237,6 +403,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="small">Previsualización</div>
           <div class="viewer" id="viewerPrev" style="aspect-ratio:16/9">
             <canvas id="fxPrev" class="cvfx"></canvas>
+            <div class="fx-design" id="fxDesignPrev"></div>
             <div id="framePrev" class="frame" style="display:block;"></div>
             <div class="layer-arts" id="artsPrev"></div>
             <div class="safe">
@@ -266,6 +433,18 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Color fondo</label><input id="bg" type="color" value="#000000"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Color texto</label><input id="tx" type="color" value="#ffffff"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Tamaño QR (%)</label><input id="qrPct" type="number" min="20" max="80" value="58"></div>
+
+          <!-- NUEVO: selector de diseño -->
+          <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
+            <label style="min-width:140px">Diseño pantalla</label>
+            <select id="designSel">
+              <option value="none">Ninguno</option>
+              <option value="stars">Estrellas</option>
+              <option value="lights">Luces</option>
+              <option value="fireworks">Fuegos artificiales</option>
+              <option value="waves">Ondas</option>
+            </select>
+          </div>
 
           <hr style="border-color:rgba(255,255,255,.12)">
 
@@ -411,7 +590,7 @@ function layoutQR(box, viewer, scale=1){
   box.innerHTML=""; box.appendChild(qrImg(buildUploadURL(), side));
 }
 
-/* FX */
+/* FX class */
 class FX{
   constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
   resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0);}
@@ -432,6 +611,7 @@ const S = Object.assign({
   titleOffX:0,titleOffY:0, titleScale:100,
   subOffX:0,subOffY:0, subScale:100,
   qrOffX:0, qrOffY:0, qrScale:100,
+  design:"none",
   logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
   arts:[],
   frameBasePct:60, frameOffX:0, frameOffY:0, frameScale:100,
@@ -440,6 +620,17 @@ const S = Object.assign({
 let T=null; 
 const ST=()=> T||S; 
 const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
+
+/* aplicar diseño a una vista */
+function applyDesign(where){
+  const s=ST();
+  const el = (where==="main") ? $("#fxDesignMain") : $("#fxDesignPrev");
+  if(!el) return;
+  el.className = "fx-design";
+  if(s.design && s.design!=="none"){
+    el.classList.add("d-"+s.design);
+  }
+}
 
 /* theme */
 function applyTheme(){
@@ -453,11 +644,12 @@ function applyTheme(){
   if($("#bg"))       s.bg=$("#bg").value;
   if($("#tx"))       s.text=$("#tx").value;
   if($("#qrPct"))    s.qrPct=Number($("#qrPct").value||58);
+  if($("#designSel")) s.design=$("#designSel").value;
   if($("#durSec"))   s.durationSec=Math.max(1, Number($("#durSec").value||5));
   layoutAll();
   if(slideActive) resetSlideshow();
 }
-["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
+["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec","designSel"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
 /* subir imagen */
 async function openChooserFor(cam, gal){
@@ -496,7 +688,6 @@ function handleImageSelected(file){
   layoutAll();
   if(!edit) setEdit(true);
   toast("Imagen subida ✅");
-  /* limpiar para poder subir otra enseguida */
   $("#logoCam").value = "";
   $("#logoGal").value = "";
 }
@@ -542,6 +733,8 @@ function layoutViewer(where){
 
   title.textContent=s.title; sub.textContent=s.subText;
   title.style.color=s.text;  sub.style.color=s.text;  viewer.style.background=s.bg;
+
+  applyDesign(where);
 
   layoutQR(qrBox, viewer, SCALE);
   setTS(qrBox, s.qrOffX||0, s.qrOffY||0, (s.qrScale||100)*(where==="prev"?SCALE*100:100)/100);
@@ -611,9 +804,7 @@ function getOffsets(key){
           list[j]={...list[j],offX:x,offY:y,scale:(sc!=null?sc:list[j].scale||100)};
         }
         target.arts = list;
-        if(!T){
-          persist();
-        }
+        if(!T){ persist(); }
       }
     };
   }
@@ -851,6 +1042,7 @@ function applyInitial(){
   $("#bg")       && ($("#bg").value=S.bg);
   $("#tx")       && ($("#tx").value=S.text);
   $("#qrPct")    && ($("#qrPct").value=S.qrPct);
+  $("#designSel") && ($("#designSel").value=S.design || "none");
   $("#durSec")   && ($("#durSec").value=S.durationSec);
   $("#roomId").textContent=room; $("#roomId2").textContent=room; $("#roomUp").textContent=room;
   layoutAll();
