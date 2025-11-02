@@ -28,8 +28,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 .viewer:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;border:none}
 .cvfx{position:absolute;inset:0;z-index:1;pointer-events:none}
 
-/* ===== CAPA DE DISEÑOS =====
-   la agrando para que cubra TODA la pantalla sin cortes */
+/* ===== CAPA DE DISEÑOS ===== */
 .fx-design{
   position:absolute;
   inset:-15%;
@@ -39,7 +38,6 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   background-position:center;
   background-size:cover;
   filter:drop-shadow(0 0 20px rgba(0,0,0,.4));
-  /* para que los ::before/::after funcionen */
   content:"";
 }
 .fx-design::before,
@@ -50,9 +48,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   pointer-events:none;
 }
 
-/* ========== DISEÑOS MEJORADOS ========== */
-
-/* 1) ESTRELLAS: dos capas, una chiquita que titila y otra con nebulosa */
+/* Estrellas */
 .d-stars{
   background:
     radial-gradient(circle at 50% 40%, rgba(11,14,20,0) 0, rgba(11,14,20,1) 65%),
@@ -60,7 +56,6 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   mix-blend-mode:screen;
 }
 .d-stars::before{
-  /* capa de estrellas muy densas */
   background-image:
     radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 40%),
     radial-gradient(1.6px 1.6px at 30% 80%, rgba(255,255,255,.9) 0, rgba(255,255,255,0) 45%),
@@ -72,7 +67,6 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   opacity:.95;
 }
 .d-stars::after{
-  /* brillo nebulosa suave */
   background:
     radial-gradient(circle at 20% 60%, rgba(255,255,255,.12) 0, rgba(255,255,255,0) 45%),
     radial-gradient(circle at 80% 25%, rgba(255,225,150,.2) 0, rgba(255,225,150,0) 48%),
@@ -90,7 +84,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   to{opacity:1}
 }
 
-/* 2) LUCES / ESCENARIO: haces desde arriba y laterales */
+/* Luces */
 .d-lights{
   background:
     radial-gradient(circle at 12% -12%, rgba(255,255,255,1) 0, rgba(255,255,255,0) 55%),
@@ -99,7 +93,6 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   mix-blend-mode:screen;
 }
 .d-lights::before{
-  /* haces inclinados */
   background-image:
     linear-gradient(120deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 55%),
     linear-gradient(240deg, rgba(255,200,120,.55) 0%, rgba(255,200,120,0) 55%),
@@ -111,7 +104,6 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   opacity:.95;
 }
 .d-lights::after{
-  /* partículas de luz más chiquitas */
   background-image:
     radial-gradient(1.5px 1.5px at 10% 80%, rgba(255,255,255,.8) 0, rgba(255,255,255,0) 60%),
     radial-gradient(2px 2px at 90% 65%, rgba(255,230,180,.85) 0, rgba(255,230,180,0) 55%);
@@ -128,13 +120,12 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   100%{transform:translateY(10%)}
 }
 
-/* 3) FUEGOS ARTIFICIALES: explosiones en distintos puntos */
+/* Fuegos */
 .d-fireworks{
   background: radial-gradient(circle at 50% 120%, rgba(0,0,0,.3) 0, rgba(0,0,0,0) 65%);
   mix-blend-mode:screen;
 }
 .d-fireworks::before{
-  /* explosión 1 */
   background-image:
     radial-gradient(circle, rgba(255,255,255,1) 0, rgba(255,255,255,0) 55%),
     radial-gradient(circle, rgba(255,146,146,1) 0, rgba(255,146,146,0) 50%),
@@ -145,7 +136,6 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   opacity:.95;
 }
 .d-fireworks::after{
-  /* explosión 2 desfasada */
   background-image:
     radial-gradient(circle, rgba(255,227,130,1) 0, rgba(255,227,130,0) 50%),
     radial-gradient(circle, rgba(255,255,255,.5) 0, rgba(255,255,255,0) 70%);
@@ -167,7 +157,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
   100%{transform:scale(1.25);opacity:0}
 }
 
-/* 4) ONDAS DORADAS: más llenas y envolventes */
+/* Ondas */
 .d-waves{
   background:
     radial-gradient(circle at 50% 130%, rgba(212,175,55,.55) 0, rgba(212,175,55,0) 70%),
@@ -207,10 +197,9 @@ h1{font-family:var(--title-font);font-weight:900;margin:0;line-height:1.05;color
 h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .qr{width:300px;height:300px;display:grid;place-items:center;transition:transform .04s}
 .qr img{width:100%;height:100%;image-rendering:pixelated;display:block}
-/* apagamos el logo fijo para no molestar */
 .logo{display:none!important}
 
-/* imágenes subidas (se arrastran) */
+/* imágenes subidas */
 .art{
   position:absolute;
   object-fit:contain;
@@ -220,7 +209,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   z-index:9;
 }
 
-/* ====== AJUSTE DE EDICIÓN PARA QUE TODO TOQUE ====== */
+/* edición */
 .select-mode .safe{
   z-index:4;
   pointer-events:none;
@@ -235,7 +224,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   z-index:3;
 }
 
-/* Marco cuadrado para la foto (editable) */
+/* Marco foto */
 .frame{
   position:absolute;
   display:none;
@@ -253,7 +242,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
   font-weight:700; letter-spacing:.2em; opacity:.25; color:#fff;
 }
 
-/* Controles flotantes */
+/* Controles */
 .ctrls{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:10}
 .btn{background:#fff;border:1px solid rgba(0,0,0,.15);color:#0b0e14;padding:8px 10px;border-radius:10px;cursor:pointer}
 .viewer:fullscreen .ctrls{display:none}
@@ -268,7 +257,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 
 .small{font-size:12px;color:#cbd5e1}
 
-/* Bounding Box tipo Canva */
+/* BBox */
 #bbox{position:absolute;z-index:12;border:2px solid #8b5cf6;border-radius:6px;display:none;pointer-events:none}
 .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #8b5cf6;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:auto;cursor:nwse-resize}
 .handle.n{top:-8px;left:50%;transform:translate(-50%,0);cursor:ns-resize}
@@ -285,15 +274,12 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 .rail{display:flex;gap:8px;overflow:auto;padding-bottom:6px}
 .rail img{width:88px;height:62px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.18)}
 
-/* Preview en Ajustes (mini) */
 #viewerPrev{max-width:340px}
 #viewerPrev .layer-center{transform:scale(.7);transform-origin:center}
 
-/* Toast */
 .toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(8px);background:#0f172a;border:1px solid #0f172a;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:80}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Chooser mini modal */
 #chooser{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;z-index:70;align-items:center;justify-content:center}
 #chooser .box{background:#0f172a;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px;min-width:280px}
 #chooser .box h3{margin:0 0 6px 0;font-size:16px}
@@ -326,14 +312,13 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
 </header>
 
 <main>
-  <!-- ===== PANTALLA ===== -->
+  <!-- PANTALLA -->
   <section id="pantalla" class="pane">
     <div class="card">
       <div id="fbWarn" class="warn hidden">⚠️ No conectado a Firestore o permisos denegados. Revisá Auth anónimo y reglas.</div>
       <div class="viewer" id="viewer">
         <canvas id="fxMain" class="cvfx"></canvas>
 
-        <!-- capa de diseño -->
         <div class="fx-design" id="fxDesignMain"></div>
 
         <!-- Marco foto -->
@@ -389,7 +374,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
     </div>
   </section>
 
-  <!-- ===== AJUSTES ===== -->
+  <!-- AJUSTES -->
   <section id="ajustes" class="pane hidden">
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between;align-items:center">
@@ -434,7 +419,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Color texto</label><input id="tx" type="color" value="#ffffff"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Tamaño QR (%)</label><input id="qrPct" type="number" min="20" max="80" value="58"></div>
 
-          <!-- NUEVO: selector de diseño -->
+          <!-- selector de diseño -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Diseño pantalla</label>
             <select id="designSel">
@@ -459,7 +444,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
             <input id="logoGal" type="file" accept="image/*,.svg,.webp,.avif" class="hidden">
           </div>
 
-          <!-- controles de logo (compat) -->
+          <!-- controles de logo -->
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Altura logo (vh)</label><input id="logoVH" type="number" min="6" max="40" value="18"></div>
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0"><label style="min-width:140px">Posición logo</label>
             <select id="logoPos"><option value="center" selected>Centro</option><option value="top-left">Arriba izq.</option><option value="top-right">Arriba der.</option><option value="bottom-left">Abajo izq.</option><option value="bottom-right">Abajo der.</option></select>
@@ -470,6 +455,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
           </div>
 
           <hr style="border-color:rgba(255,255,255,.12)">
+
           <div class="row" style="display:flex;gap:12px;align-items:center;margin:10px 0">
             <label style="min-width:140px">Duración por foto (seg)</label>
             <input id="durSec" type="number" min="1" max="60" value="5">
@@ -484,7 +470,7 @@ h2{margin:0;color:var(--text);opacity:.9;font-size:clamp(13px,1.7vw,20px)}
     </div>
   </section>
 
-  <!-- ===== SUBIR (desde QR) ===== -->
+  <!-- SUBIR por QR -->
   <section id="upload" class="hidden">
     <div class="card">
       <div class="hero">
@@ -539,19 +525,10 @@ const enterFS=(el)=>el.requestFullscreen?.();
 const exitFS=()=>document.exitFullscreen?.(); 
 const isFS=()=>document.fullscreenElement;
 
-/* limpiar artes al salir */
-function clearArtsFromLS(){
-  const raw = localStorage.getItem("qr:settings");
-  if(!raw) return;
-  try{
-    const st = JSON.parse(raw);
-    if(st && Array.isArray(st.arts)){
-      st.arts = [];
-      localStorage.setItem("qr:settings", JSON.stringify(st));
-    }
-  }catch(_){}
-}
-window.addEventListener("beforeunload", clearArtsFromLS);
+/* no tocar tus imágenes locales al salir */
+window.addEventListener("beforeunload", ()=>{
+  // dejamos lo que está en localStorage tal cual
+});
 
 /* chooser */
 let chooserResolve = null;
@@ -590,7 +567,7 @@ function layoutQR(box, viewer, scale=1){
   box.innerHTML=""; box.appendChild(qrImg(buildUploadURL(), side));
 }
 
-/* FX class */
+/* FX */
 class FX{
   constructor(canvas, host){ this.cv=canvas; this.host=host; this.ctx=canvas.getContext('2d'); new ResizeObserver(()=>this.resize()).observe(host); this.resize(); requestAnimationFrame(()=>this.loop()); }
   resize(){ const r=this.host.getBoundingClientRect(); const d=Math.min(2,window.devicePixelRatio||1); this.cv.width=Math.max(1,r.width*d); this.cv.height=Math.max(1,r.height*d); this.cv.style.width=r.width+"px"; this.cv.style.height=r.height+"px"; this.ctx.setTransform(d,0,0,d,0,0);}
@@ -599,12 +576,8 @@ class FX{
 new FX($("#fxMain"), $("#viewer"));
 new FX($("#fxPrev"), $("#viewerPrev"));
 
-/* estado */
+/* estado base */
 const DEFAULTS = JSON.parse(localStorage.getItem("qr:settings") || "{}");
-if (DEFAULTS && Array.isArray(DEFAULTS.arts) && DEFAULTS.arts.length){
-  DEFAULTS.arts = [];
-  localStorage.setItem("qr:settings", JSON.stringify(DEFAULTS));
-}
 const S = Object.assign({
   title:"¡Subí tu foto con el QR!", subText:"Escaneá y subí 📲", font:"Poppins",
   bg:"#000000", text:"#ffffff", qrPct:58,
@@ -612,8 +585,7 @@ const S = Object.assign({
   subOffX:0,subOffY:0, subScale:100,
   qrOffX:0, qrOffY:0, qrScale:100,
   design:"none",
-  logoUrl:"", logoVH:18, logoPos:"center", logoOffX:0, logoOffY:0, logoAlpha:100, logoBlend:"normal", logoScale:100,
-  arts:[],
+  arts: DEFAULTS.arts || [],
   frameBasePct:60, frameOffX:0, frameOffY:0, frameScale:100,
   durationSec:5
 }, DEFAULTS);
@@ -621,7 +593,38 @@ let T=null;
 const ST=()=> T||S; 
 const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
-/* aplicar diseño a una vista */
+/* helper: actualizar tanto S como T */
+function updateStateFor(key, changer){
+  // key puede ser "title","sub","qr","frame" o "art:ID"
+  // 1) actualizar S
+  if(key==="title"){ changer(S, "title"); }
+  else if(key==="sub"){ changer(S, "sub"); }
+  else if(key==="qr"){ changer(S, "qr"); }
+  else if(key==="frame"){ changer(S, "frame"); }
+  else if(key.startsWith("art:")){
+    const id = key.split(":")[1];
+    const idx = (S.arts||[]).findIndex(a=>a.id===id);
+    if(idx>-1){ S.arts[idx] = changer({arts:S.arts[idx]}, "art").arts; }
+  }
+
+  // 2) actualizar T si existe
+  if(T){
+    if(key==="title"){ changer(T, "title"); }
+    else if(key==="sub"){ changer(T, "sub"); }
+    else if(key==="qr"){ changer(T, "qr"); }
+    else if(key==="frame"){ changer(T, "frame"); }
+    else if(key.startsWith("art:")){
+      const id = key.split(":")[1];
+      const idxT = (T.arts||[]).findIndex(a=>a.id===id);
+      if(idxT>-1){ T.arts[idxT] = changer({arts:T.arts[idxT]}, "art").arts; }
+    }
+  }
+
+  // 3) guardar
+  persist();
+}
+
+/* aplicar diseño */
 function applyDesign(where){
   const s=ST();
   const el = (where==="main") ? $("#fxDesignMain") : $("#fxDesignPrev");
@@ -651,7 +654,7 @@ function applyTheme(){
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec","designSel"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* subir imagen */
+/* subir imagen local */
 async function openChooserFor(cam, gal){
   const sel = await openChooser();
   if(sel==="cam") cam.click();
@@ -659,7 +662,6 @@ async function openChooserFor(cam, gal){
 }
 $("#btnPickLogo")?.addEventListener("click", ()=>openChooserFor($("#logoCam"), $("#logoGal")));
 
-/* las subidas van como pos:"free" y con offset random */
 function pushImageToArts(url){
   const rndX = Math.floor(Math.random()*60) - 30;
   const rndY = Math.floor(Math.random()*60) - 30;
@@ -679,6 +681,7 @@ function pushImageToArts(url){
     T.arts = T.arts || [];
     T.arts.push({...imgObj});
   }
+  persist();
 }
 function handleImageSelected(file){
   if(!file) return;
@@ -804,7 +807,6 @@ function getOffsets(key){
           list[j]={...list[j],offX:x,offY:y,scale:(sc!=null?sc:list[j].scale||100)};
         }
         target.arts = list;
-        if(!T){ persist(); }
       }
     };
   }
@@ -876,6 +878,7 @@ function onMove(e){
 
 function finishDrop(){
   if(!dragEl) return;
+  const key = getKey(dragEl);
   const style=dragEl.style.transform || getComputedStyle(dragEl).transform;
   const view=$("#viewer").getBoundingClientRect();
   let xPct=baseX, yPct=baseY;
@@ -890,11 +893,48 @@ function finishDrop(){
     }
   }
   const scMatch=/scale\(([\d.]+)\)/.exec(style);
-  const sc = scMatch ? Math.round(parseFloat(scMatch[1])*100) : getOffsets(getKey(dragEl)).sc||100;
+  const sc = scMatch ? Math.round(parseFloat(scMatch[1])*100) : getOffsets(key).sc||100;
+
   const dist = Math.hypot(xPct-baseX, yPct-baseY);
-  const finalX = dist<0.3 ? baseX : xPct;
-  const finalY = dist<0.3 ? baseY : yPct;
-  getOffsets(getKey(dragEl)).set(finalX,finalY,sc);
+  if(dist < 0.3){
+    dragging=false;
+    dragEl=null;
+    return;
+  }
+
+  // 👇 aquí guardamos en S y en T y persistimos
+  updateStateFor(key, (obj)=>{
+    if(key==="title"){
+      obj.titleOffX = xPct;
+      obj.titleOffY = yPct;
+      obj.titleScale = sc;
+      return obj;
+    }
+    if(key==="sub"){
+      obj.subOffX = xPct;
+      obj.subOffY = yPct;
+      obj.subScale = sc;
+      return obj;
+    }
+    if(key==="qr"){
+      obj.qrOffX = xPct;
+      obj.qrOffY = yPct;
+      obj.qrScale = sc;
+      return obj;
+    }
+    if(key==="frame"){
+      obj.frameOffX = xPct;
+      obj.frameOffY = yPct;
+      obj.frameScale = sc;
+      return obj;
+    }
+    if(key.startsWith("art:")){
+      // obj es {arts:...} en este caso
+      return { arts: { ...obj.arts, offX:xPct, offY:yPct, scale:sc } };
+    }
+    return obj;
+  });
+
   dragging=false;
   positionBBox(dragEl);
   dragEl=null;
@@ -929,11 +969,43 @@ function onResizeMove(e){
   let newScale = Math.max(10, Math.min(400, Math.round((startScale*(1+rel))*1)));
   dragEl.style.transform=`translate(${startTX}%, ${startTY}%) scale(${newScale/100})`;
   positionBBox(dragEl);
-  const k=getKey(dragEl); const st=getOffsets(k); st.set(st.x, st.y, newScale);
+  const key = getKey(dragEl);
+
+  // 👇 redimensionar también se guarda al toque
+  updateStateFor(key, (obj)=>{
+    if(key==="title"){
+      obj.titleOffX = startTX;
+      obj.titleOffY = startTY;
+      obj.titleScale = newScale;
+      return obj;
+    }
+    if(key==="sub"){
+      obj.subOffX = startTX;
+      obj.subOffY = startTY;
+      obj.subScale = newScale;
+      return obj;
+    }
+    if(key==="qr"){
+      obj.qrOffX = startTX;
+      obj.qrOffY = startTY;
+      obj.qrScale = newScale;
+      return obj;
+    }
+    if(key==="frame"){
+      obj.frameOffX = startTX;
+      obj.frameOffY = startTY;
+      obj.frameScale = newScale;
+      return obj;
+    }
+    if(key.startsWith("art:")){
+      return { arts: { ...obj.arts, offX:startTX, offY:startTY, scale:newScale } };
+    }
+    return obj;
+  });
 }
 function endResize(){ resizing=false; dragEl=null; }
 
-/* eliminar */
+/* eliminar imagen subida (local) */
 function removeArtById(id){
   S.arts = (S.arts || []).filter(a=>a.id!==id);
   if(T && T.arts){ T.arts = T.arts.filter(a=>a.id!==id); }
@@ -951,7 +1023,7 @@ $("#btnDel").addEventListener("click", ()=>{
     deselectEl();
     toast("Imagen eliminada 🗑️");
   }else{
-    toast("Solo se elimina lo subido");
+    toast("Solo se elimina lo subido en pantalla");
   }
 });
 
@@ -971,6 +1043,7 @@ function setEdit(on){
     bindSelectables(true);
   }else{
     hideBBox();
+    // aunque en edición ya fuimos guardando, igual sincronizamos
     T && Object.assign(S, T);
     T=null; dragging=false; dragEl=null; selectedEl=null; resizing=false;
     $("#viewer").classList.remove("select-mode");
@@ -1072,7 +1145,7 @@ async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
   return dataURL;
 }
 
-/* slideshow */
+/* slideshow (solo QR) */
 let shownIds = new Set();
 let queue    = [];
 let slideIndex = 0;
@@ -1116,7 +1189,7 @@ let selectedUpFile=null;
 async function initFirebase(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } =
+    const { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, getDocs, deleteDoc } =
       await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
     const { getAuth, signInAnonymously, onAuthStateChanged } =
       await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
@@ -1140,6 +1213,19 @@ async function initFirebase(){
     });
 
     const col = collection(db, `rooms/${room}/photos`);
+
+    /* limpiar fotos del QR al entrar */
+    try{
+      const snap = await getDocs(col);
+      const dels = [];
+      snap.forEach(docSnap=>{
+        dels.push(deleteDoc(docSnap.ref));
+      });
+      await Promise.all(dels);
+    }catch(e){
+      console.warn("No se pudo limpiar las fotos viejas de Firestore:", e);
+    }
+
     fb = { ok:true, addDoc, serverTimestamp, onSnapshot, query, orderBy, col };
 
     $("#fbWarn").classList.add("hidden");
