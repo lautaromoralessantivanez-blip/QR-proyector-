@@ -1,4 +1,4 @@
-<!doctype html>  
+<!doctype html>    
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
@@ -525,11 +525,6 @@ const enterFS=(el)=>el.requestFullscreen?.();
 const exitFS=()=>document.exitFullscreen?.(); 
 const isFS=()=>document.fullscreenElement;
 
-/* no tocar tus imágenes locales al salir */
-window.addEventListener("beforeunload", ()=>{
-  // dejamos lo que está en localStorage tal cual
-});
-
 /* chooser */
 let chooserResolve = null;
 function openChooser(){ return new Promise((res)=>{ chooserResolve=res; $("#chooser").style.display="flex"; }); }
@@ -576,8 +571,8 @@ class FX{
 new FX($("#fxMain"), $("#viewer"));
 new FX($("#fxPrev"), $("#viewerPrev"));
 
-/* estado base */
-const DEFAULTS = JSON.parse(localStorage.getItem("qr:settings") || "{}");
+/* ======= ESTADO (sin persistencia) ======= */
+const DEFAULTS = {}; // no leemos localStorage
 const S = Object.assign({
   title:"¡Subí tu foto con el QR!", subText:"Escaneá y subí 📲", font:"Poppins",
   bg:"#000000", text:"#ffffff", qrPct:58,
@@ -585,18 +580,19 @@ const S = Object.assign({
   subOffX:0,subOffY:0, subScale:100,
   qrOffX:0, qrOffY:0, qrScale:100,
   design:"none",
-  arts: DEFAULTS.arts || [],
+  arts: [],
   frameBasePct:60, frameOffX:0, frameOffY:0, frameScale:100,
-  durationSec:5
+  durationSec:5,
+  hideTitle:false, hideSub:false, hideQR:false, hideFrame:false
 }, DEFAULTS);
 let T=null; 
 const ST=()=> T||S; 
-const persist=()=>localStorage.setItem("qr:settings", JSON.stringify(S));
 
-/* helper: actualizar tanto S como T */
+/* persistencia anulada */
+const persist = ()=>{}; // NO guarda nada en localStorage
+
+/* helper: actualizar tanto S como T (memoria) */
 function updateStateFor(key, changer){
-  // key puede ser "title","sub","qr","frame" o "art:ID"
-  // 1) actualizar S
   if(key==="title"){ changer(S, "title"); }
   else if(key==="sub"){ changer(S, "sub"); }
   else if(key==="qr"){ changer(S, "qr"); }
@@ -606,8 +602,6 @@ function updateStateFor(key, changer){
     const idx = (S.arts||[]).findIndex(a=>a.id===id);
     if(idx>-1){ S.arts[idx] = changer({arts:S.arts[idx]}, "art").arts; }
   }
-
-  // 2) actualizar T si existe
   if(T){
     if(key==="title"){ changer(T, "title"); }
     else if(key==="sub"){ changer(T, "sub"); }
@@ -619,9 +613,16 @@ function updateStateFor(key, changer){
       if(idxT>-1){ T.arts[idxT] = changer({arts:T.arts[idxT]}, "art").arts; }
     }
   }
-
-  // 3) guardar
   persist();
+}
+
+/* setHidden (solo memoria) */
+function setHidden(which, hidden=true){
+  if(which==="title"){ S.hideTitle=hidden; if(T) T.hideTitle=hidden; }
+  if(which==="sub")  { S.hideSub =hidden; if(T) T.hideSub =hidden; }
+  if(which==="qr")   { S.hideQR  =hidden; if(T) T.hideQR  =hidden; }
+  if(which==="frame"){ S.hideFrame=hidden; if(T) T.hideFrame=hidden; }
+  persist(); layoutAll(); deselectEl();
 }
 
 /* aplicar diseño */
@@ -654,7 +655,7 @@ function applyTheme(){
 }
 ["inpTitle","inpSub","bg","tx","fontSel","qrPct","durSec","designSel"].forEach(id=>$("#"+id)?.addEventListener("input",applyTheme));
 
-/* subir imagen local */
+/* subir imagen local (solo memoria) */
 async function openChooserFor(cam, gal){
   const sel = await openChooser();
   if(sel==="cam") cam.click();
@@ -731,11 +732,17 @@ function layoutViewer(where){
   const sub    = where==="main" ? $("#sub") : $("#subPrev");
   const qrBox  = where==="main" ? $("#qrBox") : $("#qrPrev");
   const arts   = where==="main" ? $("#artsMain") : $("#artsPrev");
+  const frame  = where==="main" ? $("#frame") : $("#framePrev");
   const SCALE  = (where==="prev") ? .7 : 1;
   if(!viewer) return;
 
   title.textContent=s.title; sub.textContent=s.subText;
   title.style.color=s.text;  sub.style.color=s.text;  viewer.style.background=s.bg;
+
+  title.style.display = s.hideTitle ? "none" : "";
+  sub.style.display   = s.hideSub   ? "none" : "";
+  qrBox.style.display = s.hideQR    ? "none" : "";
+  if(where==="prev"){ frame.style.display = s.hideFrame ? "none" : "block"; }
 
   applyDesign(where);
 
@@ -767,8 +774,9 @@ function layoutViewer(where){
 
   layoutFrame(where);
 
-  if(where==="main" && edit){
-    bindSelectables(true);
+  if(where==="main"){
+    if(s.hideFrame) frame.style.display="none";
+    if(edit){ bindSelectables(true); }
   }
 }
 function layoutAll(){ layoutViewer("main"); layoutViewer("prev"); }
@@ -846,6 +854,7 @@ function bindSelectables(on){
   const els=[$("#title"),$("#sub"),$("#qrBox"),$("#frame"),...$("#artsMain").querySelectorAll(".art")];
   els.forEach(el=>{
     if(!el) return;
+    if(el.style.display==="none") return;
     el.style.pointerEvents = on ? "auto" : el.classList.contains("art") ? "auto" : "none";
     el.removeEventListener("pointerdown", onDown);
     if(on) el.addEventListener("pointerdown", onDown);
@@ -902,36 +911,12 @@ function finishDrop(){
     return;
   }
 
-  // 👇 aquí guardamos en S y en T y persistimos
   updateStateFor(key, (obj)=>{
-    if(key==="title"){
-      obj.titleOffX = xPct;
-      obj.titleOffY = yPct;
-      obj.titleScale = sc;
-      return obj;
-    }
-    if(key==="sub"){
-      obj.subOffX = xPct;
-      obj.subOffY = yPct;
-      obj.subScale = sc;
-      return obj;
-    }
-    if(key==="qr"){
-      obj.qrOffX = xPct;
-      obj.qrOffY = yPct;
-      obj.qrScale = sc;
-      return obj;
-    }
-    if(key==="frame"){
-      obj.frameOffX = xPct;
-      obj.frameOffY = yPct;
-      obj.frameScale = sc;
-      return obj;
-    }
-    if(key.startsWith("art:")){
-      // obj es {arts:...} en este caso
-      return { arts: { ...obj.arts, offX:xPct, offY:yPct, scale:sc } };
-    }
+    if(key==="title"){ obj.titleOffX = xPct; obj.titleOffY = yPct; obj.titleScale = sc; return obj; }
+    if(key==="sub")  { obj.subOffX   = xPct; obj.subOffY   = yPct; obj.subScale   = sc; return obj; }
+    if(key==="qr")   { obj.qrOffX    = xPct; obj.qrOffY    = yPct; obj.qrScale    = sc; return obj; }
+    if(key==="frame"){ obj.frameOffX = xPct; obj.frameOffY = yPct; obj.frameScale = sc; return obj; }
+    if(key.startsWith("art:")){ return { arts: { ...obj.arts, offX:xPct, offY:yPct, scale:sc } }; }
     return obj;
   });
 
@@ -971,35 +956,12 @@ function onResizeMove(e){
   positionBBox(dragEl);
   const key = getKey(dragEl);
 
-  // 👇 redimensionar también se guarda al toque
   updateStateFor(key, (obj)=>{
-    if(key==="title"){
-      obj.titleOffX = startTX;
-      obj.titleOffY = startTY;
-      obj.titleScale = newScale;
-      return obj;
-    }
-    if(key==="sub"){
-      obj.subOffX = startTX;
-      obj.subOffY = startTY;
-      obj.subScale = newScale;
-      return obj;
-    }
-    if(key==="qr"){
-      obj.qrOffX = startTX;
-      obj.qrOffY = startTY;
-      obj.qrScale = newScale;
-      return obj;
-    }
-    if(key==="frame"){
-      obj.frameOffX = startTX;
-      obj.frameOffY = startTY;
-      obj.frameScale = newScale;
-      return obj;
-    }
-    if(key.startsWith("art:")){
-      return { arts: { ...obj.arts, offX:startTX, offY:startTY, scale:newScale } };
-    }
+    if(key==="title"){ obj.titleOffX = startTX; obj.titleOffY = startTY; obj.titleScale = newScale; return obj; }
+    if(key==="sub")  { obj.subOffX   = startTX; obj.subOffY   = startTY; obj.subScale   = newScale; return obj; }
+    if(key==="qr")   { obj.qrOffX    = startTX; obj.qrOffY    = startTY; obj.qrScale    = newScale; return obj; }
+    if(key==="frame"){ obj.frameOffX = startTX; obj.frameOffY = startTY; obj.frameScale = newScale; return obj; }
+    if(key.startsWith("art:")){ return { arts: { ...obj.arts, offX:startTX, offY:startTY, scale:newScale } }; }
     return obj;
   });
 }
@@ -1012,19 +974,27 @@ function removeArtById(id){
   persist();
   layoutAll();
 }
+
+/* Eliminar seleccionado */
 $("#btnDel").addEventListener("click", ()=>{
   if(!edit) { toast("Activá edición primero"); return; }
-  if(!selectedEl){ toast("Seleccioná una imagen"); return; }
+  if(!selectedEl){ toast("Seleccioná un objeto"); return; }
   const key = getKey(selectedEl);
+
   if(key.startsWith("art:")){
     const id = key.split(":")[1];
     selectedEl.remove();
     removeArtById(id);
     deselectEl();
     toast("Imagen eliminada 🗑️");
-  }else{
-    toast("Solo se elimina lo subido en pantalla");
+    return;
   }
+  if(key==="title"){ setHidden("title", true); toast("Título eliminado 🗑️"); return; }
+  if(key==="sub")  { setHidden("sub",   true); toast("Subtítulo eliminado 🗑️"); return; }
+  if(key==="qr")   { setHidden("qr",    true); toast("QR eliminado 🗑️"); return; }
+  if(key==="frame"){ setHidden("frame", true); toast("Marco de foto eliminado 🗑️"); return; }
+
+  toast("Nada para eliminar");
 });
 
 /* modo edición */
@@ -1043,7 +1013,6 @@ function setEdit(on){
     bindSelectables(true);
   }else{
     hideBBox();
-    // aunque en edición ya fuimos guardando, igual sincronizamos
     T && Object.assign(S, T);
     T=null; dragging=false; dragEl=null; selectedEl=null; resizing=false;
     $("#viewer").classList.remove("select-mode");
@@ -1059,11 +1028,12 @@ function setEdit(on){
   }
 }
 $("#btnEdit").addEventListener("click",()=>setEdit(true));
-$("#btnSave").addEventListener("click",()=>{ setEdit(false); toast("Cambios guardados ✅"); });
+$("#btnSave").addEventListener("click",()=>{ setEdit(false); toast("Cambios guardados (solo esta sesión) ✅"); });
 
 /* Foto toggle */
 function ensureFrameVisible(select=false){
   const f=$("#frame");
+  if(ST().hideFrame) return;
   f.style.display="block";
   const hasImg = $("#photo")?.src && !$("#photo").src.endsWith("#");
   f.classList.toggle("placeholder", !hasImg);
@@ -1074,6 +1044,10 @@ $("#btnFoto")?.addEventListener("click", ()=>{
   if(!edit){
     setEdit(true);
     ensureFrameVisible(true);
+    return;
+  }
+  if(ST().hideFrame){
+    toast("El marco está eliminado. Usá Reset para restaurar.");
     return;
   }
   const isVisible = f.style.display!=="none";
@@ -1090,6 +1064,7 @@ $("#btnFoto")?.addEventListener("click", ()=>{
 /* Modal QR / Fullscreen / atajos */
 const modal=$("#qrModal"), stage=$("#qrStage"), qrBig=$("#qrBig");
 function openQR(){ if(location.hash==="#subir") return;
+  if(ST().hideQR){ toast("El QR está eliminado."); return; }
   modal.style.display="block";
   const s=Math.floor(Math.min(stage.clientWidth,stage.clientHeight)*0.66);
   qrBig.innerHTML=""; qrBig.appendChild(qrImg(buildUploadURL(), s));
@@ -1122,7 +1097,7 @@ function applyInitial(){
 }
 applyInitial();
 
-$("#btnReset")?.addEventListener("click", ()=>{ localStorage.removeItem("qr:settings"); location.reload(); });
+$("#btnReset")?.addEventListener("click", ()=>{ location.reload(); });
 
 /* compresión */
 async function fileToCompressedDataURL(file, maxSide=1600, quality=0.78){
@@ -1151,9 +1126,13 @@ let queue    = [];
 let slideIndex = 0;
 let slideTimer = null;
 let slideActive = false;
-function showCenter(on){ $("#qrBox").parentElement.style.display = on ? "grid" : "none"; }
-function showFrame(on){ $("#frame").style.display = on ? "block" : "none"; }
+function showCenter(on){ const allow = on && !ST().hideQR; $("#qrBox").parentElement.style.display = allow ? "grid" : "none"; }
+function showFrame(on){ const allow = on && !ST().hideFrame; $("#frame").style.display = allow ? "block" : "none"; }
 function showPhoto(src){
+  if(ST().hideFrame){
+    showCenter(true);
+    return;
+  }
   const ph=$("#photo");
   ph.src=src || "#";
   ph.onload=()=>{ $("#frame").classList.remove("placeholder"); showCenter(false); showFrame(true); };
@@ -1214,7 +1193,7 @@ async function initFirebase(){
 
     const col = collection(db, `rooms/${room}/photos`);
 
-    /* limpiar fotos del QR al entrar */
+    /* limpiar fotos del QR al entrar (para que no queden de sesiones previas) */
     try{
       const snap = await getDocs(col);
       const dels = [];
@@ -1272,7 +1251,16 @@ async function initFirebase(){
 initFirebase();
 
 /* visibilidad inicial */
-function initialVisibility(){ showCenter(true); showFrame(false); }
+function initialVisibility(){ 
+  // Siempre empezar con QR visible y sin foto
+  $("#photo").src = "#";
+  $("#frame").style.display="none";
+  $("#frame").classList.add("placeholder");
+  $("#title").style.display="";
+  $("#sub").style.display="";
+  $("#qrBox").style.display="";
+  showCenter(true); 
+}
 initialVisibility();
 </script>
 </body>
